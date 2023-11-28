@@ -19,17 +19,25 @@ summary(user_data_small$yelping_since)
 user_data_small <- user_data_small %>% 
   mutate(yelping_since=ymd_hms(yelping_since))
 summary(user_data_small$yelping_since)
-#user_data_small[, 8]
-# Need to convert empty strings into NA's in Elite
-#user_data_small <- user_data_small %>%
-#  mutate(across(elite, ~na_if(., "")))
-#Need to convert None into NA's in friends, correct this, None is not NA?
-#user_data_small <- user_data_small %>%
-#  mutate(across(friends, ~na_if(., "None")))
 user_data_small[, 8]
+# Need to convert empty strings into NA's in Elite to calculate Elite years
+user_data_small <- user_data_small %>%
+  mutate(across(elite, ~na_if(., "")))
+
+#Count how many friends a user has:
+user_data_small <- user_data_small %>% 
+  mutate(friend_count = 1 + str_count(friends, ","))
+
 # Need to convert 20,20 in yelping_since into 2020 in Elite, no need, just create dummies
 user_data_small <- user_data_small %>%
   mutate(elite = str_replace_all(elite, "20,20", "2020"))
+# Count number of years user was elite for
+user_data_small<- user_data_small %>% 
+  mutate(elite_years = 1 + str_count(elite, ","))
+# Convert NA's into 0 for Elite years
+user_data_small <- user_data_small %>% 
+  mutate(elite_years = replace_na(elite_years, 0))
+
 save(user_data_small, file = "user_data.Rdata")
 
 load("C:/Users/tantr/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/user_data.Rdata")
