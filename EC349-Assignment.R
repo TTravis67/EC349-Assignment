@@ -28,9 +28,8 @@ summary(user_data_small$yelping_since)
 #  mutate(across(friends, ~na_if(., "None")))
 user_data_small[, 8]
 # Need to convert 20,20 in yelping_since into 2020 in Elite, no need, just create dummies
-#user_data_small <- user_data_small %>%
-#  mutate(elite = str_replace_all(elite, "20,20", "2020"))
-mutate(user_data_small)
+user_data_small <- user_data_small %>%
+  mutate(elite = str_replace_all(elite, "20,20", "2020"))
 save(user_data_small, file = "user_data.Rdata")
 
 load("C:/Users/tantr/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/user_data.Rdata")
