@@ -5,6 +5,7 @@ library(tidyverse)
 library(jsonlite)
 library(caret)
 library(lubridate)
+library(glmnet)
 
 #Clear
 cat("\014")  
@@ -49,8 +50,21 @@ user_data_small <- user_data_small %>%
   mutate(total_compliments = pmap_dbl(select(., 12:22), ~sum(c(...), na.rm = TRUE)))
 
 save(user_data_small, file = "user_data.Rdata")
-
 load("C:/Users/tantr/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/user_data.Rdata")
+
+set.seed(1)
+# Create a separate partition within the data frame of the original data set to be called upon to create training vs test sets
+user_partition <- createDataPartition(y = user_data_small$average_stars, 1, p = 0.75)
+# The partition is separate in the data frame of user and thus needs to be called when referring to the indices with user_data_small[]
+user_training_set <- user_data_small[user_partition[[1]], ]
+user_test_set <- user_data_small[-user_partition[[1]], ]
+
+x <- df[, !(names(user_training_set) %in% c("review_count", "yelping_since", "elite_year_count", "friend_count", "fans", "useful", "funny", "cool", "total_compliments"))]
+
+grid <- 10^seq(10,-2, length=100)
+ridge.user <- glmnet()
+
+
 review_data_small <- mutate(review_data_small, ymd_hms(review_data_small$date))
 
 load("C:/Users/Travis/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/Small Datasets/yelp_review_small.Rda")

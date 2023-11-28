@@ -27,7 +27,8 @@ knitr::opts_chunk$set(echo = TRUE)
     * Taking the two: $$stars = \sum_{j=1}^{u} \beta_j * user feature_j + \sum_{k=1}^{b} \beta_k * business feature_k$$  
     This will be my starting model for ridge regression.
 
-Remember that big businesses are more likely to have available data and not a whole bunch of NA's
+Remember that big businesses are more likely to have available data and not a whole bunch of NA's   
+I first split training data set on user data into 75/25.
 
 
 
