@@ -19,24 +19,34 @@ summary(user_data_small$yelping_since)
 user_data_small <- user_data_small %>% 
   mutate(yelping_since=ymd_hms(yelping_since))
 summary(user_data_small$yelping_since)
-user_data_small[, 8]
-# Need to convert empty strings into NA's in Elite to calculate Elite years
-user_data_small <- user_data_small %>%
-  mutate(across(elite, ~na_if(., "")))
 
-#Count how many friends a user has:
+# Convert None to NA in friends otherwise difficult to calculate friends:
+user_data_small <- user_data_small %>% 
+  mutate(friends = if_else(friends == "None", NA, friends))
+# Count how many friends a user has:
 user_data_small <- user_data_small %>% 
   mutate(friend_count = 1 + str_count(friends, ","))
+# Convert NA in friend count into 0
+user_data_small <- user_data_small %>% 
+  mutate(friend_count = if_else(is.na(friend_count), 0, friend_count))
+
+user_data_small[, 8]
 
 # Need to convert 20,20 in yelping_since into 2020 in Elite, no need, just create dummies
 user_data_small <- user_data_small %>%
   mutate(elite = str_replace_all(elite, "20,20", "2020"))
+# Need to convert empty strings into NA's in Elite to calculate Elite years
+user_data_small <- user_data_small %>%
+  mutate(across(elite, ~na_if(., "")))
 # Count number of years user was elite for
 user_data_small<- user_data_small %>% 
-  mutate(elite_years = 1 + str_count(elite, ","))
+  mutate(elite_year_count = 1 + str_count(elite, ","))
 # Convert NA's into 0 for Elite years
 user_data_small <- user_data_small %>% 
-  mutate(elite_years = replace_na(elite_years, 0))
+  mutate(elite_year_count = replace_na(elite_year_count, 0))
+# Total compliments for every user
+user_data_small <- user_data_small %>% 
+  mutate(total_compliments = pmap_dbl(select(., 12:22), ~sum(c(...), na.rm = TRUE)))
 
 save(user_data_small, file = "user_data.Rdata")
 
