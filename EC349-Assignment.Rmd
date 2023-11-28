@@ -9,30 +9,25 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+## Plans
 
-```{r}
-str(user_data_small)
-```
-
-```{r}
-user_data_small[, 8]
-```
-
+* First, I have decided to first construct a model out of Ridge regression to help identify which variables might have the strongest explanatory power. If some predictors truly have outsized explanatory power, I will then perform LASSO regression to perform feature selection. 
+  * I would examine which model performed better, if some predictors have disproportionate explanatory power, the LASSO should perform better than the ridge.
+  
+* If there isn't, I would then examine random forests as a possible feasible alternative.
+  * This could be seen as a classification problem.
 
 
-```{r}
-user_data_small <- user_data_small %>%
-  mutate(across(elite, ~na_if(., "")))
-```
+### Linear models
 
+* I will first find trends between features to see how stars are given: Would more active users give more or fewer stars on average?
+  * To do this, I would have to find the user and business features that could predict stars given. So 2 models first:
+    * Stars given according to user features: $$stars = \sum_{j=1}^{u} \beta_j * user feature_j  $$
+    * Stars given according to business features: $$stars = \sum_{k=1}^{b} \beta_k * business feature_k  $$
+    * Taking the two: $$stars = \sum_{j=1}^{u} \beta_j * user feature_j + \sum_{k=1}^{b} \beta_k * business feature_k$$  
+    This will be my starting model for ridge regression.
 
-```{r}
-summary(user_data_small$elite)
-```
-
-
-
-
+Remember that big businesses are more likely to have available data and not a whole bunch of NA's
 
 
 
