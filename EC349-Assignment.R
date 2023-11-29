@@ -87,8 +87,7 @@ print(cv.ridgeu)
 plot(cv.ridgeu)
 print(cv.ridgeu$lambda.min) # minLambda = 5.306794e-13
 lambda.ridge <- cv.ridgeu$lambda.min
-coef.ridge <- coef(cv.ridgeu, s= lambda.ridge)
-coef.ridge.tidy <- tidy(coef.ridge)
+coef.ridge <- as.matrix(coef(cv.ridgeu, s= lambda.ridge))
 coef.ridge.df <- as.data.frame(coef.ridge)
 min.mse <- min(cv.ridgeu$cvm) 
 print(min.mse) # minMSE = 1.371429
