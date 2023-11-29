@@ -1,18 +1,14 @@
 setwd("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment")
 
-
 library(tidyverse)
 library(jsonlite)
 library(caret)
 library(lubridate)
 library(glmnet)
-library(broom)
 
 #Clear
 cat("\014")  
 rm(list=ls())
-
-
 #For big data set
 user_data <- stream_in(file("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_user.json"))
 user_data <- stream_in(file("C:/Users/tantr/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_user.json"))
@@ -22,7 +18,6 @@ summary(user_data$yelping_since)
 user_data <- user_data %>% 
   mutate(yelping_since=ymd_hms(yelping_since))
 summary(user_data$yelping_since)
-
 # Convert None to NA in friends otherwise difficult to calculate friends:
 user_data <- user_data %>% 
   mutate(friends = if_else(friends == "None", NA, friends))
@@ -32,7 +27,6 @@ user_data <- user_data %>%
 # Convert NA in friend count into 0
 user_data <- user_data %>% 
   mutate(friend_count = if_else(is.na(friend_count), 0, friend_count))
-
 # Need to convert 20,20 in yelping_since into 2020 in elite
 user_data <- user_data %>%
   mutate(elite = str_replace_all(elite, "20,20", "2020"))
@@ -59,13 +53,9 @@ user_data_cleaned <- user_data[, c("user_id", "review_count", "yelping_since", "
 user_data_cleaned <- user_data %>% 
   select(user_id, review_count, yelping_since, useful, funny, cool, fans, average_stars, elite_year_count, friend_count, total_compliments)
 
-
 save(user_data_cleaned, file = "user_data_cleaned.Rdata")
 load("C:/Users/tantr/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/user_data_cleaned.Rdata")
 load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/user_data_cleaned.Rdata")
-
-
-
 
 set.seed(1)
 # Create a separate partition within the data frame of the original data set to be called upon to create training vs test sets
@@ -78,7 +68,6 @@ user_test_set <- user_data_cleaned[-user_partition[[1]], ]
 vars_excluded <- c("average_stars", "user_id", "yelping_since")
 x <- as.matrix(user_training_set[,setdiff(names(user_training_set), vars_excluded)])
 y <- user_training_set$average_stars
-
 
 
 krid <- 10^seq(-1,-15, length=150)
@@ -96,6 +85,27 @@ print(min.mse) # minMSE = 1.371429
 
 review_data_small <- mutate(review_data_small, ymd_hms(review_data_small$date))
 
+
+
+business_data <- stream_in(file("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_business.json")) #note that stream_in reads the json lines (as the files are json lines, not json)
+business_data <- stream_in(file("C:/Users/tantr/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_business.json")) #note that stream_in reads the json lines (as the files are json lines, not json), laptops' path
+
+business_data <- business_data %>% 
+  mutate(city = as.factor(city))
+business_data <- business_data %>% 
+  mutate(state = as.factor(state))
+business_data <- business_data %>% 
+  mutate(categories=as.factor(categories))
+
+# Counting how many non-empty attributes a business has, the more famous/ubiquitous business should have more attributes
+# This means number of non-empty attributes could be seen as a measure of popularity
+count_non_na <- function(df){
+  apply(df, 1, function(row) sum(!is.na(row)))
+}
+business_data <- business_data %>% 
+  mutate(ubiquity = map(attributes, count_non_na))
+
+
 load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/Small Datasets/yelp_review_small.Rda")
 load("C:/Users/tantr/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/Small Datasets/yelp_review_small.Rda")
 
@@ -103,9 +113,6 @@ load("C:/Users/tantr/OneDrive - University of Warwick/EC349/Assignment 1/Assignm
 review_data_small <- review_data_small %>% 
   mutate(date=ymd_hms(date))
 
-
-business_data <- stream_in(file("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_business.json")) #note that stream_in reads the json lines (as the files are json lines, not json)
-business_data <- stream_in(file("C:/Users/tantr/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_business.json")) #note that stream_in reads the json lines (as the files are json lines, not json), laptops' path
 checkin_data  <- stream_in(file("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_checkin.json")) #note that stream_in reads the json lines (as the files are json lines, not json)
 checkin_data  <- stream_in(file("C:/Users/tantr/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_checkin.json")) #note that stream_in reads the json lines (as the files are json lines, not json), laptops' path
 tip_data  <- stream_in(file("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_tip.json")) #note that stream_in reads the json lines (as the files are json lines, not json)
