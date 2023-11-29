@@ -6,6 +6,7 @@ library(jsonlite)
 library(caret)
 library(lubridate)
 library(glmnet)
+library(broom)
 
 #Clear
 cat("\014")  
@@ -47,6 +48,10 @@ user_data <- user_data %>%
 # Total compliments for every user
 user_data <- user_data %>% 
   mutate(total_compliments = pmap_dbl(select(., 12:22), ~sum(c(...), na.rm = TRUE)))
+# Find account age
+yelping_start <- year(user_data_cleaned$yelping_since)
+user_data_cleaned <- user_data_cleaned %>% 
+  mutate(account_age = 2023 - yelping_start)
 # Base R, was very annoying to do, should have done dplyr like below
 user_data_cleaned <- user_data[, c("user_id", "review_count", "yelping_since", "useful", "funny", "cool", "fans", "average_stars", 
                                          "elite_year_count", "friend_count", "total_compliments")]
@@ -58,6 +63,9 @@ user_data_cleaned <- user_data %>%
 save(user_data_cleaned, file = "user_data_cleaned.Rdata")
 load("C:/Users/tantr/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/user_data_cleaned.Rdata")
 load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/user_data_cleaned.Rdata")
+
+
+
 
 set.seed(1)
 # Create a separate partition within the data frame of the original data set to be called upon to create training vs test sets
@@ -71,8 +79,20 @@ vars_excluded <- c("average_stars", "user_id", "yelping_since")
 x <- as.matrix(user_training_set[,setdiff(names(user_training_set), vars_excluded)])
 y <- user_training_set$average_stars
 
-grid <- 10^seq(10,-2, length=100)
-ridge.user <- glmnet(x, y, alpha=0, lambda = grid)
+
+
+krid <- 10^seq(-1,-15, length=150)
+cv.ridgeu <- cv.glmnet(x, y, alpha=0, lambda = krid)
+print(cv.ridgeu)
+plot(cv.ridgeu)
+print(cv.ridgeu$lambda.min) # minLambda = 5.306794e-13
+lambda.ridge <- cv.ridgeu$lambda.min
+coef.ridge <- coef(cv.ridgeu, s= lambda.ridge)
+coef.ridge.tidy <- tidy(coef.ridge)
+coef.ridge.df <- as.data.frame(coef.ridge)
+min.mse <- min(cv.ridgeu$cvm) 
+print(min.mse) # minMSE = 1.371429
+
 
 
 review_data_small <- mutate(review_data_small, ymd_hms(review_data_small$date))
@@ -84,7 +104,7 @@ load("C:/Users/tantr/OneDrive - University of Warwick/EC349/Assignment 1/Assignm
 review_data_small <- review_data_small %>% 
   mutate(date=ymd_hms(date))
 
-user_data <- stream_in(file("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_user.json"))
+
 business_data <- stream_in(file("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_business.json")) #note that stream_in reads the json lines (as the files are json lines, not json)
 business_data <- stream_in(file("C:/Users/tantr/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_business.json")) #note that stream_in reads the json lines (as the files are json lines, not json), laptops' path
 checkin_data  <- stream_in(file("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_checkin.json")) #note that stream_in reads the json lines (as the files are json lines, not json)
