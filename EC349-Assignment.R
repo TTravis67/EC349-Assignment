@@ -11,70 +11,80 @@ library(glmnet)
 cat("\014")  
 rm(list=ls())
 
-#Load & save different data
-load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/Small Datasets/yelp_user_small.Rda")
-load("C:/Users/tantr/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/Small Datasets/yelp_user_small.Rda")
 
-summary(user_data_small$yelping_since)
+#For big data set
+user_data <- stream_in(file("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_user.json"))
+user_data <- stream_in(file("C:/Users/tantr/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_user.json"))
+
+summary(user_data$yelping_since)
 # date in character, convert into dates
-user_data_small <- user_data_small %>% 
+user_data <- user_data %>% 
   mutate(yelping_since=ymd_hms(yelping_since))
-summary(user_data_small$yelping_since)
+summary(user_data$yelping_since)
 
 # Convert None to NA in friends otherwise difficult to calculate friends:
-user_data_small <- user_data_small %>% 
+user_data <- user_data %>% 
   mutate(friends = if_else(friends == "None", NA, friends))
 # Count how many friends a user has:
-user_data_small <- user_data_small %>% 
+user_data <- user_data %>% 
   mutate(friend_count = 1 + str_count(friends, ","))
 # Convert NA in friend count into 0
-user_data_small <- user_data_small %>% 
+user_data <- user_data %>% 
   mutate(friend_count = if_else(is.na(friend_count), 0, friend_count))
 
-user_data_small[, 8]
-
-# Need to convert 20,20 in yelping_since into 2020 in Elite, no need, just create dummies
-user_data_small <- user_data_small %>%
+# Need to convert 20,20 in yelping_since into 2020 in elite
+user_data <- user_data %>%
   mutate(elite = str_replace_all(elite, "20,20", "2020"))
-# Need to convert empty strings into NA's in Elite to calculate Elite years
-user_data_small <- user_data_small %>%
+# Need to convert empty strings into NA's in elite to calculate elite years, otherwise because of my 1 + n(,) function, I'd get 1 instead of NA which wwould be hassle to turn into 0
+user_data <- user_data %>%
   mutate(across(elite, ~na_if(., "")))
 # Count number of years user was elite for
-user_data_small<- user_data_small %>% 
+user_data <- user_data %>% 
   mutate(elite_year_count = 1 + str_count(elite, ","))
 # Convert NA's into 0 for Elite years
-user_data_small <- user_data_small %>% 
+user_data <- user_data %>% 
   mutate(elite_year_count = replace_na(elite_year_count, 0))
 # Total compliments for every user
-user_data_small <- user_data_small %>% 
+user_data <- user_data %>% 
   mutate(total_compliments = pmap_dbl(select(., 12:22), ~sum(c(...), na.rm = TRUE)))
+# Base R, was very annoying to do, should have done dplyr like below
+user_data_cleaned <- user_data[, c("user_id", "review_count", "yelping_since", "useful", "funny", "cool", "fans", "average_stars", 
+                                         "elite_year_count", "friend_count", "total_compliments")]
+# Definitely do this next time!
+user_data_cleaned <- user_data %>% 
+  select(user_id, review_count, yelping_since, useful, funny, cool, fans, average_stars, elite_year_count, friend_count, total_compliments)
 
-save(user_data_small, file = "user_data.Rdata")
-load("C:/Users/tantr/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/user_data.Rdata")
+
+save(user_data_cleaned, file = "user_data_cleaned.Rdata")
+load("C:/Users/tantr/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/user_data_cleaned.Rdata")
+load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/user_data_cleaned.Rdata")
 
 set.seed(1)
 # Create a separate partition within the data frame of the original data set to be called upon to create training vs test sets
-user_partition <- createDataPartition(y = user_data_small$average_stars, 1, p = 0.75)
+# The separate partition can be treated like a separate list and so can be called with a name in the row index
+user_partition <- createDataPartition(y = user_data_cleaned$average_stars, 1, p = 0.75)
 # The partition is separate in the data frame of user and thus needs to be called when referring to the indices with user_data_small[]
-user_training_set <- user_data_small[user_partition[[1]], ]
-user_test_set <- user_data_small[-user_partition[[1]], ]
+user_training_set <- user_data_cleaned[user_partition[[1]], ]
+user_test_set <- user_data_cleaned[-user_partition[[1]], ]
 
-x <- df[, !(names(user_training_set) %in% c("review_count", "yelping_since", "elite_year_count", "friend_count", "fans", "useful", "funny", "cool", "total_compliments"))]
+vars_excluded <- c("average_stars", "user_id", "yelping_since")
+x <- as.matrix(user_training_set[,setdiff(names(user_training_set), vars_excluded)])
+y <- user_training_set$average_stars
 
 grid <- 10^seq(10,-2, length=100)
-ridge.user <- glmnet()
+ridge.user <- glmnet(x, y, alpha=0, lambda = grid)
 
 
 review_data_small <- mutate(review_data_small, ymd_hms(review_data_small$date))
 
-load("C:/Users/Travis/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/Small Datasets/yelp_review_small.Rda")
+load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/Small Datasets/yelp_review_small.Rda")
 load("C:/Users/tantr/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/Small Datasets/yelp_review_small.Rda")
 
 # convert date into date format
 review_data_small <- review_data_small %>% 
   mutate(date=ymd_hms(date))
 
-
+user_data <- stream_in(file("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_user.json"))
 business_data <- stream_in(file("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_business.json")) #note that stream_in reads the json lines (as the files are json lines, not json)
 business_data <- stream_in(file("C:/Users/tantr/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_business.json")) #note that stream_in reads the json lines (as the files are json lines, not json), laptops' path
 checkin_data  <- stream_in(file("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_checkin.json")) #note that stream_in reads the json lines (as the files are json lines, not json)
