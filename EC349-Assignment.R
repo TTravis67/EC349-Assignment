@@ -4,6 +4,8 @@ library(tidyverse)
 library(jsonlite)
 library(caret)
 library(lubridate)
+
+
 library(glmnet)
 
 #Clear
@@ -130,11 +132,7 @@ tip_data  <- stream_in(file("C:/Users/tantr/OneDrive - University of Warwick/EC3
 
 
 
-save(business_data, file = "business_data.RData")
-save(checkin_data, file = "checkin_data.Rdata")
-save(tip_data, file = "tip_data.Rdata")
-save(review_data_small, file = "review_data.Rdata")
-save(user_data_small, file = "user_data.Rdata")
+
 
 
 
