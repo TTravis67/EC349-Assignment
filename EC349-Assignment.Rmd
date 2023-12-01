@@ -32,6 +32,25 @@ creating 2 models, one model for big businesses and one for small.
 
 I first split training data set on user data into 75/25.
 
+### Variable Selection
+Before formally choosing a model, understanding the variables is crucial. To predict the stars a business receives from a user requires user and business features, starting with business data:  
+* city, state, latitude, longitude: location features  
+* review count  
+* stars  
+* engagement: measured by number of attributes a business filled, this indicates how much they value 
+* category count? Shows 
+* business category  
+* opening hour availability?  
+  
+What could determine how many stars a business receives from a user?  
+* Business features as above, but also how many checkins a business may receive. Some business categories would receive more than others?  
+* User features as above  
+* Review positivity by user? Like whether a review is positive, useful, funny, cool etc. This requires sentiment analysis.  
+* Tip data, same as review positivity.  
+* 
+
+
+
 
 
 

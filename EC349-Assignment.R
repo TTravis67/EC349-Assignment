@@ -87,10 +87,6 @@ print(min.mse) # minMSE = 1.371429
 
 
 
-
-
-
-
 business_data <- stream_in(file("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_business.json")) #note that stream_in reads the json lines (as the files are json lines, not json)
 business_data <- stream_in(file("C:/Users/tantr/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_business.json")) #note that stream_in reads the json lines (as the files are json lines, not json), laptops' path
 
@@ -100,34 +96,66 @@ business_data <- business_data %>%
   mutate(state = as.factor(state))
 business_data <- business_data %>% 
   mutate(categories=as.factor(categories))
+# finding categories as factors looks kinda useless, might need to instead count how many categories a business has
+
 
 # Counting how many non-empty attributes a business has, the more famous/ubiquitous business should have more attributes since this means
 # they have dedicated staff or is more innovative in keeping up with the trend 
 # This means number of non-empty attributes could be seen as a measure of engagement with yelp?
 # Could be problematic because no one really goes to fill out all 39 attributes including unrelated ones.
 # Unless this also carries information about how big the place is because the more general purpose the more attributes?
-business_attributes <- business_data %>% 
+b_attributes <- business_data %>% 
   select(attributes)
-engagement <- rowSums(!is.na(business_attributes))
+#engagement <- rowSums(!is.na(b_attributes))
 business_data <- business_data %>% 
-  mutate(engagement = engagement)
+  mutate(engagement = rowSums(!is.na(b_attributes)))
+
 # Check how businesses choose to fill the attributes according to categories?
 business_engagement <- business_data %>% 
-  select(name, categories, engagement)
+  select(name, review_count, categories, engagement)
+# Find category count and see how it's distributed:
+business_data <- business_data %>% 
+  mutate(category_count = 1 + str_count(categories, ","))
+ggplot(business_data, aes(x = category_count)) +
+  geom_histogram(binwidth = 1, fill = "blue", color = "black") +
+  labs(title = "Histogram of Category Count", x = "Category Count", y ="Frequency")
+ggplot(business_data, aes(x= engagement, y = category_count)) + 
+  geom_point() + 
+  labs(title = "Engagement vs Category count", x = "Engagement count", y = "Category_count")
+# Categories can be attached by algorithm for related terms so may not be useful?
+# Looks pretty useless, instead categorise the businesses, bars & restaurants, financial services etc.?
 
+# Also need to figure out what to do with opening hours.
 
-load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/Small Datasets/yelp_review_small.Rda")
-load("C:/Users/tantr/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/Small Datasets/yelp_review_small.Rda")
+ggplot(business_data, aes(x = engagement)) +
+  geom_histogram(binwidth = 1, fill = "red", colour = "green") +
+  labs(title = "Histogram of Engagement Count", x = "Engagement count", y = "Frequency")
 
-# convert date into date format
-review_data_small <- review_data_small %>% 
-  mutate(date=ymd_hms(date))
+business_data_cleaned <- business_data %>% 
+  select(business_id, city, state, latitude, longitude, stars, review_count, categories, category_count, engagement)
 
 checkin_data  <- stream_in(file("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_checkin.json")) #note that stream_in reads the json lines (as the files are json lines, not json)
 checkin_data  <- stream_in(file("C:/Users/tantr/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_checkin.json")) #note that stream_in reads the json lines (as the files are json lines, not json), laptops' path
+
+# Check which businesses have checkins
+checkin_data <- checkin_data %>% 
+  mutate(checkin_count = 1 + str_count(date, ","))
+colnames(checkin_data)[2] <- "checkin_dates"
+business_data_cleaned <- left_join(business_data_cleaned, checkin_data, by = "business_id")
+business_data_cleaned$checkin_dates <- NULL
+sum(is.na(business_data_cleaned$checkin_count))
+# 18416 have NA's, that means no one checked in? Need to verify whether there are 0's in the dataset!Cannot use sum(if_else) because of NA's present
+summary(business_data_cleaned$checkin_count) # Min = 1, so NA means 0 checkin's
+business_data_cleaned <- business_data_cleaned %>% 
+  mutate(checkin_count = if_else(is.na(checkin_count), 0, checkin_count))
+
+save(business_data_cleaned, file = "business_data_cleaned.Rdata")
+
 tip_data  <- stream_in(file("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_tip.json")) #note that stream_in reads the json lines (as the files are json lines, not json)
 tip_data  <- stream_in(file("C:/Users/tantr/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_tip.json")) #note that stream_in reads the json lines (as the files are json lines, not json), laptops' path
 
+load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/Small Datasets/yelp_review_small.Rda")
+load("C:/Users/tantr/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/Small Datasets/yelp_review_small.Rda")
 
 
 
