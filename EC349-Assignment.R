@@ -76,6 +76,8 @@ print(cv.ridgeu)
 plot(cv.ridgeu)
 print(cv.ridgeu$lambda.min) # minLambda = 5.306794e-13
 lambda.ridge <- cv.ridgeu$lambda.min
+#dcGmatrix needs to be converted into proper matrix before conversion into dataframe to be viewed
+#matrix is stored as a value and cannot be viewed and saved as data directly to do that you need to convert into data frame
 coef.ridge <- as.matrix(coef(cv.ridgeu, s= lambda.ridge))
 coef.ridge.df <- as.data.frame(coef.ridge)
 min.mse <- min(cv.ridgeu$cvm) 
@@ -97,13 +99,16 @@ business_data <- business_data %>%
 business_data <- business_data %>% 
   mutate(categories=as.factor(categories))
 
-# Counting how many non-empty attributes a business has, the more famous/ubiquitous business should have more attributes
-# This means number of non-empty attributes could be seen as a measure of popularity
-count_non_na <- function(df){
-  apply(df, 1, function(row) sum(!is.na(row)))
-}
+# Counting how many non-empty attributes a business has, the more famous/ubiquitous business should have more attributes since this means
+# they have dedicated staff or is more innovative in keeping up with the trend 
+# This means number of non-empty attributes could be seen as a measure of engagement with yelp?
+# Could be problematic because no one really goes to fill out all 39 attributes including unrelated ones.
+business_attributes <- business_data %>% 
+  select(attributes)
+engagement <- rowSums(!is.na(business_attributes))
 business_data <- business_data %>% 
-  mutate(ubiquity = map(attributes, count_non_na))
+  mutate(engagement = engagement)
+
 
 
 load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/Small Datasets/yelp_review_small.Rda")

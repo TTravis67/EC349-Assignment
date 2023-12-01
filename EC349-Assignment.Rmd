@@ -15,7 +15,7 @@ knitr::opts_chunk$set(echo = TRUE)
   * I would examine which model performed better, if some predictors have disproportionate explanatory power, the LASSO should perform better than the ridge.
   
 * If there isn't, I would then examine random forests as a possible feasible alternative.
-  * This could be seen as a classification problem- depending on conditions, businesses might get above a threshold of stars.
+  * This could be seen as a classification problem- depending on conditions, businesses might get above a threshold of stars as stars are given in .5 increments.
 
 
 ### Linear models
