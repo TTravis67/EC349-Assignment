@@ -87,7 +87,7 @@ print(min.mse) # minMSE = 1.371429
 
 
 
-review_data_small <- mutate(review_data_small, ymd_hms(review_data_small$date))
+
 
 
 
@@ -111,7 +111,9 @@ business_attributes <- business_data %>%
 engagement <- rowSums(!is.na(business_attributes))
 business_data <- business_data %>% 
   mutate(engagement = engagement)
-
+# Check how businesses choose to fill the attributes according to categories?
+business_engagement <- business_data %>% 
+  select(name, categories, engagement)
 
 
 load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/Small Datasets/yelp_review_small.Rda")
