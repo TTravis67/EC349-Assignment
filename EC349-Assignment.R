@@ -103,6 +103,7 @@ business_data <- business_data %>%
 # they have dedicated staff or is more innovative in keeping up with the trend 
 # This means number of non-empty attributes could be seen as a measure of engagement with yelp?
 # Could be problematic because no one really goes to fill out all 39 attributes including unrelated ones.
+# Unless this also carries information about how big the place is because the more general purpose the more attributes?
 business_attributes <- business_data %>% 
   select(attributes)
 engagement <- rowSums(!is.na(business_attributes))
