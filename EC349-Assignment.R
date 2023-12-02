@@ -44,10 +44,25 @@ user_data <- user_data %>%
 # Total compliments for every user
 user_data <- user_data %>% 
   mutate(total_compliments = pmap_dbl(select(., 12:22), ~sum(c(...), na.rm = TRUE)))
-# Find account age
-yelping_start <- year(user_data_cleaned$yelping_since)
-user_data_cleaned <- user_data_cleaned %>% 
-  mutate(account_age = 2023 - yelping_start)
+#Find account age, too crude? Might miss days!
+#yelping_start <- year(user_data_cleaned$yelping_since)
+#user_data <- user_data %>% 
+#  mutate(account_age = 2023 - yelping_start)
+user_data <- user_data %>%
+  mutate(
+    years_on_yelp = as.numeric(difftime(ymd("2023-01-01"), yelping_since_date, units = "days")) / 365.25, # Calculate duration in years
+  )
+# Renaming user variables so they can be joined well with other data sets:
+colnames(user_data_cleaned)[2] <- "user_review_count"
+colnames(user_data_cleaned)[4] <- "total_useful"
+colnames(user_data_cleaned)[5] <- "total_funny"
+colnames(user_data_cleaned)[6] <- "total_cool"
+colnames(user_data_cleaned)[7] <- "total_fans"
+colnames(user_data_cleaned)[8] <- "user_average_stars"
+
+
+
+
 # Base R, was very annoying to do, should have done dplyr like below
 user_data_cleaned <- user_data[, c("user_id", "review_count", "yelping_since", "useful", "funny", "cool", "fans", "average_stars", 
                                          "elite_year_count", "friend_count", "total_compliments")]
@@ -58,6 +73,7 @@ user_data_cleaned <- user_data %>%
 save(user_data_cleaned, file = "user_data_cleaned.Rdata")
 load("C:/Users/tantr/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/user_data_cleaned.Rdata")
 load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/user_data_cleaned.Rdata")
+
 
 set.seed(1)
 # Create a separate partition within the data frame of the original data set to be called upon to create training vs test sets
@@ -148,19 +164,45 @@ sum(is.na(business_data_cleaned$checkin_count))
 summary(business_data_cleaned$checkin_count) # Min = 1, so NA means 0 checkin's
 business_data_cleaned <- business_data_cleaned %>% 
   mutate(checkin_count = if_else(is.na(checkin_count), 0, checkin_count))
+# Renaming business variables so no confusion when joining
+colnames(business_data_cleaned)[6] <- "business_stars"
+colnames(business_data_cleaned)[6] <- "business_stars"
+colnames(business_data_cleaned)[6] <- "business_stars"
+
 
 save(business_data_cleaned, file = "business_data_cleaned.Rdata")
 
-tip_data  <- stream_in(file("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_tip.json")) #note that stream_in reads the json lines (as the files are json lines, not json)
-tip_data  <- stream_in(file("C:/Users/tantr/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_tip.json")) #note that stream_in reads the json lines (as the files are json lines, not json), laptops' path
+load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/business_data_cleaned.Rdata")
+load("C:/Users/tantr/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/business_data_cleaned.Rdata")
 
 load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/Small Datasets/yelp_review_small.Rda")
 load("C:/Users/tantr/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/Small Datasets/yelp_review_small.Rda")
 
+review_data <- stream_in(file("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_review.json"))
 
 
 
+review_data_small <- review_data_small %>% 
+  mutate(date = ymd_hms(date))
+review_year <- year(review_data_small$date)
+review_data_small <- review_data_small %>% 
+  mutate(review_age = 2023 - review_year)
+# inner_join review to user
+review_data_small <- inner_join(review_data_small, user_data_cleaned, by = "user_id")
+review_data_small <- inner_join(review_data_small, business_data_cleaned, by = "business_id")
 
+review_data <- review_data %>% 
+  mutate(date = ymd_hms(date))
+review_year <- year(review_data$date)
+review_data <- review_data %>% 
+  mutate(review_age = 2023 - review_year)
+# inner_join review to user
+review_data <- inner_join(review_data, user_data_cleaned, by = "user_id")
+review_data <- inner_join(review_data, business_data_cleaned, by = "business_id")
+
+
+
+# To calculate total number of tips a user gave out, make user_id in tip data factor and find how many times each factor shows up?
 
 
 
