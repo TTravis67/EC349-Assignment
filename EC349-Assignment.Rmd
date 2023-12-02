@@ -54,7 +54,13 @@ What could determine how many stars a business receives from a user?
 * Tip data, same as review positivity.  
 *   
 
-Also important to remember to be mindful of outliers like hyper-active users who might rate differently from the average yelp user.
+Also important to remember to be mindful of outliers like hyper-active users who might rate differently from the average yelp user.  
+Can go back to better categorize businesses, should be mindful of which categories drive the most engagement
+
+### Model selection
+Using random forest for this without knowing how strong each variable is is foolhardy. Bagging might actually perform better than random forest in this case.
+
+
 
 ### Possible improvements
 Due to time constraint, I couldn't try these methods but I do think they could improve the model:  

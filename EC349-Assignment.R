@@ -1,11 +1,12 @@
 setwd("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment")
 
-library(tidyverse)
 library(jsonlite)
-library(caret)
+
+
+library(tidyverse)
 library(lubridate)
 
-
+library(caret)
 library(glmnet)
 
 #Clear
@@ -66,9 +67,6 @@ colnames(user_data)[7] <- "total_cool"
 colnames(user_data)[10] <- "total_fans"
 colnames(user_data)[11] <- "user_average_stars"
 
-
-
-
 # Base R, was very annoying to do, should have done dplyr like below
 user_data_cleaned <- user_data[, c("user_id", "review_count", "yelping_since", "useful", "funny", "cool", "fans", "average_stars", 
                                          "elite_year_count", "friend_count", "total_compliments")]
@@ -109,7 +107,7 @@ coef.ridge <- as.matrix(coef(cv.ridgeu, s= lambda.ridge))
 coef.ridge.df <- as.data.frame(coef.ridge)
 min.mse <- min(cv.ridgeu$cvm) 
 print(min.mse) # minMSE = 1.371429
-
+# Just a test with cv.ridge!
 
 
 business_data <- stream_in(file("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_business.json")) #note that stream_in reads the json lines (as the files are json lines, not json)
@@ -117,6 +115,7 @@ business_data <- stream_in(file("C:/Users/tantr/OneDrive - University of Warwick
 save(business_data, file = "business_data.Rdata")
 load("C:/Users/tantr/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/business_data.Rdata")
 load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/business_data.Rdata")
+
 
 business_data <- business_data %>% 
   mutate(city = as.factor(city))
@@ -135,14 +134,15 @@ business_data <- business_data %>%
 # Unless this also carries information about how big the place is because the more general purpose the more attributes?
 b_attributes <- business_data %>% 
   select(attributes)
-#engagement <- rowSums(!is.na(b_attributes))
 business_data <- business_data %>% 
   mutate(engagement = rowSums(!is.na(b_attributes)))
 
 # Check how businesses choose to fill the attributes according to categories?
 business_engagement <- business_data %>% 
   select(name, review_count, categories, engagement)
+
 # Find category count and see how it's distributed:
+
 # business_data <- business_data %>% 
 #   mutate(category_count = 1 + str_count(categories, ","))
 # ggplot(business_data, aes(x = category_count)) +
@@ -151,9 +151,11 @@ business_engagement <- business_data %>%
 # ggplot(business_data, aes(x= engagement, y = category_count)) + 
 #   geom_point() + 
 #   labs(title = "Engagement vs Category count", x = "Engagement count", y = "Category_count")
+
 # Categories can be attached by algorithm for related terms so may not be useful?
 # Looks pretty useless, instead categorise the businesses, bars & restaurants, financial services etc.? Would love to use unsupervised machine learning for classification but I don't think I have the time to actually learn.
 # Try creating a character vector to add up all the words between commas and then use unique function to see what unique responses there are?
+
 categories <- paste(business_engagement$categories, collapse = ",")
 categories <- strsplit(categories, ",")
 categories <- lapply(categories, str_trim)
@@ -162,19 +164,26 @@ print(unique_categories)
 unique_categories <- str_replace_all(unique_categories, " ", "")
 unique_categories_matrix <- matrix(unique_categories, ncol = 1, byrow= TRUE)
 unique_categories <- as.data.frame(unique_categories_matrix)
+
 # There are 1300+ unique categories, how would I do this? Should I check which categories are most engaged with yelp or review count by creating a category variable and parsing each business's category strings to determine most important categories?
 # unique_categories_list <- list(unique_categories)
 # named_unique_categories <- setNames(as.list(unique_categories), unique_categories)
 # unique_categories_df <- data.frame(named_unique_categories)
+
 # Clearly too many variables, R cannot handle it, try another way
 # Give up, go to Yelp category list, just take main categories form Yelp, can analyse further if I have time. Create a variable for each of them in business_data'
-# Add fashion and bars and bakery and bars for special cases because they have great engagement
+#
+# Add fashion and restaurants and bars for special cases because they have great engagement
+
 # main_categories <- c("Active Life, Arts & Entertainment, Automotive, Beauty & Spas, Education, Event Planning & Services, Financial Services, Food, Health & Medical, Home Services, Hotels & Travel, Local Flavor, Local Services, Mass Media, Nightlife, Pets, Professional Services, Public Services & Government, Real Estate, Religious Organizations, Restaurants, Shopping")
 # main_categories <- str_replace_all(main_categories, " ", "")
 # main_categories <- str_split(main_categories, ",")
 # named_main_categories <- setNames(as.list(main_categories), main_categories)
 # main_categories.df <- data.frame(named_main_categories)
 # Useless, should've just used mutate to sort each category from the start!
+business_categories <- business_data %>% 
+  select(name, categories)
+
 business_data <- business_data %>% 
   mutate(Active_Life = if_else(str_detect(categories, "Active Life"), 1, 0),
          Arts_Entertainment = if_else(str_detect(categories, "Arts & Entertainment"), 1, 0),
@@ -200,25 +209,71 @@ business_data <- business_data %>%
          Shopping = if_else(str_detect(categories, "Shopping"), 1, 0)
   )
 
+# Need to figure out how to convert things into
+
+# Also need to figure out what to do with opening hours.Some businesses don't bother filling out the times at which they're open, while others leave blank when they're not open, how would I deal with this?
+# Either exclude NA observations with opening times or match opening days to the other most similar business's opening hours. I choose the latter.
+business_hours <- business_data %>% 
+  select(name, review_count, city, state, postal_code, is_open, categories, hours)
+
+# Trying a crude method of isolating observations with all NA's for opening hours
+b_hours <- business_data %>% 
+  select(hours)
+business_hours <- business_hours %>% 
+  mutate(days_open = rowSums(!is.na(b_hours)))
+business_data <- business_data %>% 
+  mutate(days_open = rowSums(!is.na(b_hours)))
+# hours_NA <- business_hours %>% 
+#   filter(days_open == 0)
+
+# There are 23k observations with all NA's not feasible to match opening days to other most similar business's hours manually
+# Perhaps try certain conditions and have them match! Very problematic, even if I want to match a hot dog stand to another hot dog stand in the same city, I can't
+# My categories are much too vague for me to try to match to specifically similar businesses.
+# open_less_than_3 <- business_hours %>% 
+#   filter(days_open > 0 & days_open < 3) 
+
+# These are the problematic businesses, even closed businesses do list opening hours, there is just bad data colleciton here.
+# Going online to check, one can easily check with google there is data collection problem here as some with 2 days filled are open on other days
+# open_3 <- business_hours %>% 
+#   filter(days_open == 3) # More often than not, 3 days open is set manually and the other days are closed, doesn't seem to be a data issue here
+
+# open_2 <- business_hours %>% 
+#   filter(days_open == 2) # Doing some google searches, it would seem these opening hours are also set manually but these short opening days seem to be temporary measures
+
+# Owners tend to change them back to more normal 4/5-day-weeks, what to do in this case?
+# Could they be outliers in this case? Should I drop them?
+# Don't drop them, even if there are some outliers, dropping them when there are also business owners who are genuinely open.
+# Try both ways and see what happens? Keep it first and fit a regression tree with it, for now we use days open and see what happens.
+
+# Figure out business attributes now:
+# business_attributes <- business_data %>% 
+#   select(name, categories, state, postal_code, attributes)
+# unique_smoking <- unique(business_attributes$attributes$Smoking)
+# print(unique_smoking)
 
 
-print(main_categories)
-# Also need to figure out what to do with opening hours.
-
-ggplot(business_data, aes(x = engagement)) +
-  geom_histogram(binwidth = 1, fill = "red", colour = "green") +
-  labs(title = "Histogram of Engagement Count", x = "Engagement count", y = "Frequency")
+# ggplot(business_data, aes(x = engagement)) +
+#   geom_histogram(binwidth = 1, fill = "red", colour = "green") +
+#   labs(title = "Histogram of Engagement Count", x = "Engagement count", y = "Frequency")
 # Inspect categories:
-business_categories <- business_data %>% 
-  select(name, categories, engagement)
+# business_categories <- business_data %>% 
+#   select(name, categories, engagement)
 
 # Inspect attributes:
-business_attributes <- business_data %>% 
-  select(name, categories,attributes)
+# business_attributes <- business_data %>% 
+#   select(name, categories,attributes)
+# Might need to go in and manually fish out useful attributes later on!
+
+# Renaming business variables so no confusion when joining
+colnames(business_data)[9] <- "business_stars"
+colnames(business_data)[10] <- "business_review_count"
 
 
 business_data_cleaned <- business_data %>% 
-  select(business_id, city, state, latitude, longitude, stars, review_count, categories, category_count, engagement)
+  select(business_id, city, state, latitude, longitude, business_stars, business_review_count, is_open, engagement, days_open, Arts_Entertainment, Automotive, 
+         Beauty_Spas, Education, Event_Planning_Services, Financial_Services, Food, Health_Medical, Home_Services, Hotels_Travel, Local_Flavor, 
+         Local_Services, Mass_Media, Nightlife, Pets, Professional_Services, Public_Services_Government, Real_Estate, Religious_Organizations, 
+         Restaurants, Shopping)
 
 
 checkin_data  <- stream_in(file("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_checkin.json")) #note that stream_in reads the json lines (as the files are json lines, not json)
@@ -235,11 +290,6 @@ sum(is.na(business_data_cleaned$checkin_count))
 summary(business_data_cleaned$checkin_count) # Min = 1, so NA means 0 checkin's
 business_data_cleaned <- business_data_cleaned %>% 
   mutate(checkin_count = if_else(is.na(checkin_count), 0, checkin_count))
-
-# Renaming business variables so no confusion when joining
-colnames(business_data_cleaned)[6] <- "business_stars"
-colnames(business_data_cleaned)[6] <- "business_stars"
-colnames(business_data_cleaned)[6] <- "business_stars"
 
 
 save(business_data_cleaned, file = "business_data_cleaned.Rdata")
