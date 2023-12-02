@@ -154,16 +154,55 @@ business_engagement <- business_data %>%
 # Categories can be attached by algorithm for related terms so may not be useful?
 # Looks pretty useless, instead categorise the businesses, bars & restaurants, financial services etc.? Would love to use unsupervised machine learning for classification but I don't think I have the time to actually learn.
 # Try creating a character vector to add up all the words between commas and then use unique function to see what unique responses there are?
-
 categories <- paste(business_engagement$categories, collapse = ",")
 categories <- strsplit(categories, ",")
 categories <- lapply(categories, str_trim)
 unique_categories <- unique(unlist(categories))
 print(unique_categories)
-unique_categories <- matrix(unique_categories, ncol = 1, byrow= TRUE)
+unique_categories <- str_replace_all(unique_categories, " ", "")
+unique_categories_matrix <- matrix(unique_categories, ncol = 1, byrow= TRUE)
 unique_categories <- as.data.frame(unique_categories_matrix)
+# There are 1300+ unique categories, how would I do this? Should I check which categories are most engaged with yelp or review count by creating a category variable and parsing each business's category strings to determine most important categories?
+# unique_categories_list <- list(unique_categories)
+# named_unique_categories <- setNames(as.list(unique_categories), unique_categories)
+# unique_categories_df <- data.frame(named_unique_categories)
+# Clearly too many variables, R cannot handle it, try another way
+# Give up, go to Yelp category list, just take main categories form Yelp, can analyse further if I have time. Create a variable for each of them in business_data'
+# Add fashion and bars and bakery and bars for special cases because they have great engagement
+# main_categories <- c("Active Life, Arts & Entertainment, Automotive, Beauty & Spas, Education, Event Planning & Services, Financial Services, Food, Health & Medical, Home Services, Hotels & Travel, Local Flavor, Local Services, Mass Media, Nightlife, Pets, Professional Services, Public Services & Government, Real Estate, Religious Organizations, Restaurants, Shopping")
+# main_categories <- str_replace_all(main_categories, " ", "")
+# main_categories <- str_split(main_categories, ",")
+# named_main_categories <- setNames(as.list(main_categories), main_categories)
+# main_categories.df <- data.frame(named_main_categories)
+# Useless, should've just used mutate to sort each category from the start!
+business_data <- business_data %>% 
+  mutate(Active_Life = if_else(str_detect(categories, "Active Life"), 1, 0),
+         Arts_Entertainment = if_else(str_detect(categories, "Arts & Entertainment"), 1, 0),
+         Automotive = if_else(str_detect(categories, "Automotive"), 1, 0),
+         Beauty_Spas = if_else(str_detect(categories, "Beauty & Spas"), 1, 0),
+         Education = if_else(str_detect(categories, "Education"), 1, 0),
+         Event_Planning_Services = if_else(str_detect(categories, "Event Planning & Services"), 1, 0),
+         Financial_Services = if_else(str_detect(categories, "Financial Services"), 1, 0),
+         Food = if_else(str_detect(categories, "Food"), 1, 0),
+         Health_Medical = if_else(str_detect(categories, "Health & Medical"), 1, 0),
+         Home_Services = if_else(str_detect(categories, "Home Services"), 1, 0),
+         Hotels_Travel = if_else(str_detect(categories, "Hotels & Travel"), 1, 0),
+         Local_Flavor = if_else(str_detect(categories, "Local Flavor"), 1, 0),
+         Local_Services = if_else(str_detect(categories, "Local Services"), 1, 0),
+         Mass_Media = if_else(str_detect(categories, "Mass Media"), 1, 0),
+         Nightlife = if_else(str_detect(categories, "Nightlife"), 1, 0),
+         Pets = if_else(str_detect(categories, "Pets"), 1, 0),
+         Professional_Services = if_else(str_detect(categories, "Professional Services"), 1, 0),
+         Public_Services_Government = if_else(str_detect(categories, "Public Services & Government"), 1, 0),
+         Real_Estate = if_else(str_detect(categories, "Real Estate"), 1, 0),
+         Religious_Organizations = if_else(str_detect(categories, "Religious Organizations"), 1, 0),
+         Restaurants = if_else(str_detect(categories, "Restaurants"), 1, 0),
+         Shopping = if_else(str_detect(categories, "Shopping"), 1, 0)
+  )
 
 
+
+print(main_categories)
 # Also need to figure out what to do with opening hours.
 
 ggplot(business_data, aes(x = engagement)) +

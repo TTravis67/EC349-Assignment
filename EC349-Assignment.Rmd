@@ -56,6 +56,10 @@ What could determine how many stars a business receives from a user?
 
 Also important to remember to be mindful of outliers like hyper-active users who might rate differently from the average yelp user.
 
+### Possible improvements
+Due to time constraint, I couldn't try these methods but I do think they could improve the model:  
+* Doing sentiment analysis on tip and review data
+* Using unsupervised machine learning to sort business categories
 
 
 
