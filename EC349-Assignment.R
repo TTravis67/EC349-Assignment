@@ -11,9 +11,13 @@ library(glmnet)
 #Clear
 cat("\014")  
 rm(list=ls())
-#For big data set
+#Convert data into R_data file for more efficient storage and ram usage.
 user_data <- stream_in(file("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_user.json"))
 user_data <- stream_in(file("C:/Users/tantr/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_user.json"))
+save(user_data, file = "user_data.Rdata")
+rm(user_data)
+load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/user_data.Rdata")
+load("C:/Users/tantr/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/user_data.Rdata")
 
 summary(user_data$yelping_since)
 # date in character, convert into dates
@@ -41,6 +45,7 @@ user_data <- user_data %>%
 # Convert NA's into 0 for Elite years
 user_data <- user_data %>% 
   mutate(elite_year_count = replace_na(elite_year_count, 0))
+#Could consider making a variable for each elite year and checking whether that improves performance, just a thought.
 # Total compliments for every user
 user_data <- user_data %>% 
   mutate(total_compliments = pmap_dbl(select(., 12:22), ~sum(c(...), na.rm = TRUE)))
@@ -50,15 +55,16 @@ user_data <- user_data %>%
 #  mutate(account_age = 2023 - yelping_start)
 user_data <- user_data %>%
   mutate(
+    yelping_since_date = as.Date(yelping_since),
     years_on_yelp = as.numeric(difftime(ymd("2023-01-01"), yelping_since_date, units = "days")) / 365.25, # Calculate duration in years
   )
 # Renaming user variables so they can be joined well with other data sets:
-colnames(user_data_cleaned)[2] <- "user_review_count"
-colnames(user_data_cleaned)[4] <- "total_useful"
-colnames(user_data_cleaned)[5] <- "total_funny"
-colnames(user_data_cleaned)[6] <- "total_cool"
-colnames(user_data_cleaned)[7] <- "total_fans"
-colnames(user_data_cleaned)[8] <- "user_average_stars"
+colnames(user_data)[3] <- "user_review_count"
+colnames(user_data)[5] <- "total_useful"
+colnames(user_data)[6] <- "total_funny"
+colnames(user_data)[7] <- "total_cool"
+colnames(user_data)[10] <- "total_fans"
+colnames(user_data)[11] <- "user_average_stars"
 
 
 
@@ -68,12 +74,15 @@ user_data_cleaned <- user_data[, c("user_id", "review_count", "yelping_since", "
                                          "elite_year_count", "friend_count", "total_compliments")]
 # Definitely do this next time!
 user_data_cleaned <- user_data %>% 
-  select(user_id, review_count, yelping_since, useful, funny, cool, fans, average_stars, elite_year_count, friend_count, total_compliments)
-
+  select(user_id, user_review_count, yelping_since, years_on_yelp, total_useful, total_funny, total_cool, user_average_stars, elite_year_count, friend_count,
+         total_fans, compliment_hot, compliment_more, compliment_profile, compliment_cute, compliment_list, compliment_note, compliment_plain, 
+         compliment_cool, compliment_funny, total_compliments)
+#Rda files less ram intensive and more efficient storage!
 save(user_data_cleaned, file = "user_data_cleaned.Rdata")
 load("C:/Users/tantr/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/user_data_cleaned.Rdata")
 load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/user_data_cleaned.Rdata")
 
+#Check for outliers with review and 
 
 set.seed(1)
 # Create a separate partition within the data frame of the original data set to be called upon to create training vs test sets
@@ -105,13 +114,17 @@ print(min.mse) # minMSE = 1.371429
 
 business_data <- stream_in(file("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_business.json")) #note that stream_in reads the json lines (as the files are json lines, not json)
 business_data <- stream_in(file("C:/Users/tantr/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_business.json")) #note that stream_in reads the json lines (as the files are json lines, not json), laptops' path
+save(business_data, file = "business_data.Rdata")
+load("C:/Users/tantr/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/business_data.Rdata")
+load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/business_data.Rdata")
 
 business_data <- business_data %>% 
   mutate(city = as.factor(city))
 business_data <- business_data %>% 
   mutate(state = as.factor(state))
-business_data <- business_data %>% 
-  mutate(categories=as.factor(categories))
+#business_data <- business_data %>% 
+#  mutate(categories=as.factor(categories))
+
 # finding categories as factors looks kinda useless, might need to instead count how many categories a business has
 
 
@@ -130,25 +143,44 @@ business_data <- business_data %>%
 business_engagement <- business_data %>% 
   select(name, review_count, categories, engagement)
 # Find category count and see how it's distributed:
-business_data <- business_data %>% 
-  mutate(category_count = 1 + str_count(categories, ","))
-ggplot(business_data, aes(x = category_count)) +
-  geom_histogram(binwidth = 1, fill = "blue", color = "black") +
-  labs(title = "Histogram of Category Count", x = "Category Count", y ="Frequency")
-ggplot(business_data, aes(x= engagement, y = category_count)) + 
-  geom_point() + 
-  labs(title = "Engagement vs Category count", x = "Engagement count", y = "Category_count")
+# business_data <- business_data %>% 
+#   mutate(category_count = 1 + str_count(categories, ","))
+# ggplot(business_data, aes(x = category_count)) +
+#   geom_histogram(binwidth = 1, fill = "blue", color = "black") +
+#   labs(title = "Histogram of Category Count", x = "Category Count", y ="Frequency")
+# ggplot(business_data, aes(x= engagement, y = category_count)) + 
+#   geom_point() + 
+#   labs(title = "Engagement vs Category count", x = "Engagement count", y = "Category_count")
 # Categories can be attached by algorithm for related terms so may not be useful?
-# Looks pretty useless, instead categorise the businesses, bars & restaurants, financial services etc.?
+# Looks pretty useless, instead categorise the businesses, bars & restaurants, financial services etc.? Would love to use unsupervised machine learning for classification but I don't think I have the time to actually learn.
+# Try creating a character vector to add up all the words between commas and then use unique function to see what unique responses there are?
+
+categories <- paste(business_engagement$categories, collapse = ",")
+categories <- strsplit(categories, ",")
+categories <- lapply(categories, str_trim)
+unique_categories <- unique(unlist(categories))
+print(unique_categories)
+unique_categories <- matrix(unique_categories, ncol = 1, byrow= TRUE)
+unique_categories <- as.data.frame(unique_categories_matrix)
+
 
 # Also need to figure out what to do with opening hours.
 
 ggplot(business_data, aes(x = engagement)) +
   geom_histogram(binwidth = 1, fill = "red", colour = "green") +
   labs(title = "Histogram of Engagement Count", x = "Engagement count", y = "Frequency")
+# Inspect categories:
+business_categories <- business_data %>% 
+  select(name, categories, engagement)
+
+# Inspect attributes:
+business_attributes <- business_data %>% 
+  select(name, categories,attributes)
+
 
 business_data_cleaned <- business_data %>% 
   select(business_id, city, state, latitude, longitude, stars, review_count, categories, category_count, engagement)
+
 
 checkin_data  <- stream_in(file("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_checkin.json")) #note that stream_in reads the json lines (as the files are json lines, not json)
 checkin_data  <- stream_in(file("C:/Users/tantr/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_checkin.json")) #note that stream_in reads the json lines (as the files are json lines, not json), laptops' path
@@ -164,6 +196,7 @@ sum(is.na(business_data_cleaned$checkin_count))
 summary(business_data_cleaned$checkin_count) # Min = 1, so NA means 0 checkin's
 business_data_cleaned <- business_data_cleaned %>% 
   mutate(checkin_count = if_else(is.na(checkin_count), 0, checkin_count))
+
 # Renaming business variables so no confusion when joining
 colnames(business_data_cleaned)[6] <- "business_stars"
 colnames(business_data_cleaned)[6] <- "business_stars"
@@ -179,7 +212,11 @@ load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/As
 load("C:/Users/tantr/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/Small Datasets/yelp_review_small.Rda")
 
 review_data <- stream_in(file("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_review.json"))
-
+review_data <- stream_in(file("C:/Users/tantr/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_review.json"))
+save(review_data, file = "review_data.Rdata")
+rm(review_data)
+load("C:/Users/tantr/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/business_data.Rdata")
+load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/business_data.Rdata")
 
 
 review_data_small <- review_data_small %>% 

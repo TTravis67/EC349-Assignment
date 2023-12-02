@@ -41,13 +41,20 @@ Before formally choosing a model, understanding the variables is crucial. To pre
 * category count? Shows 
 * business category  
 * opening hour availability?  
+ 
+For user data:  
+* Could consider making a variable for each elite year and checking whether that improves performance, just a thought.  
+* Keep all compliments separate, and include total_compliments  
+* 
   
 What could determine how many stars a business receives from a user?  
 * Business features as above, but also how many checkins a business may receive. Some business categories would receive more than others?  
 * User features as above  
 * Review positivity by user? Like whether a review is positive, useful, funny, cool etc. This requires sentiment analysis.  
 * Tip data, same as review positivity.  
-* 
+*   
+
+Also important to remember to be mindful of outliers like hyper-active users who might rate differently from the average yelp user.
 
 
 
