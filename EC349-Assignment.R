@@ -72,9 +72,11 @@ user_data_cleaned <- user_data[, c("user_id", "review_count", "yelping_since", "
                                          "elite_year_count", "friend_count", "total_compliments")]
 # Definitely do this next time!
 user_data_cleaned <- user_data %>% 
-  select(user_id, user_review_count, yelping_since, years_on_yelp, total_useful, total_funny, total_cool, user_average_stars, elite_year_count, friend_count,
+  select(user_id, user_review_count, years_on_yelp, total_useful, total_funny, total_cool, user_average_stars, elite_year_count, friend_count,
          total_fans, compliment_hot, compliment_more, compliment_profile, compliment_cute, compliment_list, compliment_note, compliment_plain, 
          compliment_cool, compliment_funny, total_compliments)
+user_data_cleaned$yelping_since <- NULL
+
 #Rda files less ram intensive and more efficient storage!
 save(user_data_cleaned, file = "user_data_cleaned.Rdata")
 load("C:/Users/tantr/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/user_data_cleaned.Rdata")
@@ -297,43 +299,77 @@ save(business_data_cleaned, file = "business_data_cleaned.Rdata")
 load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/business_data_cleaned.Rdata")
 load("C:/Users/tantr/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/business_data_cleaned.Rdata")
 
-load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/Small Datasets/yelp_review_small.Rda")
-load("C:/Users/tantr/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/Small Datasets/yelp_review_small.Rda")
+# load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/Small Datasets/yelp_review_small.Rda")
+# load("C:/Users/tantr/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/Small Datasets/yelp_review_small.Rda")
 
 review_data <- stream_in(file("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_review.json"))
 review_data <- stream_in(file("C:/Users/tantr/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_review.json"))
 save(review_data, file = "review_data.Rdata")
 rm(review_data)
-load("C:/Users/tantr/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/business_data.Rdata")
-load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/business_data.Rdata")
-
-
-review_data_small <- review_data_small %>% 
-  mutate(date = ymd_hms(date))
-review_year <- year(review_data_small$date)
-review_data_small <- review_data_small %>% 
-  mutate(review_age = 2023 - review_year)
-# inner_join review to user
-review_data_small <- inner_join(review_data_small, user_data_cleaned, by = "user_id")
-review_data_small <- inner_join(review_data_small, business_data_cleaned, by = "business_id")
+load("C:/Users/tantr/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/review_data.Rdata")
+load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/review_data.Rdata")
+# 6990247 obs
 
 review_data <- review_data %>% 
   mutate(date = ymd_hms(date))
-review_year <- year(review_data$date)
-review_data <- review_data %>% 
-  mutate(review_age = 2023 - review_year)
+review_data <- review_data %>%
+  mutate(
+    review_since_date = as.Date(date),
+    review_age = as.numeric(difftime(ymd("2023-01-01"), review_since_date, units = "days")) / 365.25, # Calculate duration in years
+  )
+review_data$date <- NULL
+review_data$review_since_date <- NULL
+
+# Not gonna do sentiment analysis for now, no time
+review_data$text <- NULL
+
 # inner_join review to user
 review_data <- inner_join(review_data, user_data_cleaned, by = "user_id")
 review_data <- inner_join(review_data, business_data_cleaned, by = "business_id")
+review_data$yelping_since <- NULL
 
-
+save(review_data, file = "review_data_cleaned.Rdata")
 
 # To calculate total number of tips a user gave out, make user_id in tip data factor and find how many times each factor shows up?
 
 
+tip_data <- stream_in(file("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_tip.json"))
+tip_data <- stream_in(file("C:/Users/tantr/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_tip.json"))
+
+# 908915 obs for tip data, trying to find how many tips each user and each business gave!
+tip_data <- tip_data %>% 
+  mutate(as.factor(user_id),
+         as.factor(business_id))
+# user_tip_count computation
+user_level_counts <- table(tip_data$`as.factor(user_id)`)
+user_tip_count <- as.data.frame(user_level_counts)
+colnames(user_tip_count)[1] <- "user_id"
+colnames(user_tip_count)[2] <- "user_tip_count"
+user_tip_count <- user_tip_count %>% 
+  mutate(user_id = as.character(user_id))
+
+# business_tip_count computation
+business_level_counts <- table(tip_data$`as.factor(business_id)`)
+business_tip_count <- as.data.frame(business_level_counts)
+colnames(business_tip_count)[1] <- "business_id"
+colnames(business_tip_count)[2] <- "business_tip_count"
+business_tip_count <- business_tip_count %>% 
+  mutate(business_id = as.character(business_id))
+
+save(user_tip_count, file = "user_tip_count.Rdata")
+save(user_tip_count, file = "business_tip_count.Rdata")
+
+review_data <- left_join(review_data, user_tip_count, by = "user_id")
+review_data <- left_join(review_data, business_tip_count, by = "business_id")
+sum(is.na(review_data$user_tip_count)) # 4184814 reviews by users who never gave tips
+review_data <- review_data %>% 
+  mutate(user_tip_count = if_else(is.na(user_tip_count), 0, user_tip_count))
+sum(is.na(review_data$business_tip_count)) # 492433 reviews for businesses who never received tips
+review_data <- review_data %>% 
+  mutate(business_tip_count = if_else(is.na(business_tip_count), 0, business_tip_count))
 
 
-
+save(review_data, file = "review_data_cleaned.Rdata")
 
 
 

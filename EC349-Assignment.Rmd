@@ -58,7 +58,7 @@ Also important to remember to be mindful of outliers like hyper-active users who
 Can go back to better categorize businesses, should be mindful of which categories drive the most engagement
 
 ### Model selection
-Using random forest for this without knowing how strong each variable is is foolhardy. Bagging might actually perform better than random forest in this case.
+Using random forest for this without knowing how strong each variable is is foolhardy. Bagging might actually perform better than random forest in this case. Wanted to try to create a factor variable with levels for main categories but some businesses satisfy more than one category and so this wouldn't work.
 
 
 
