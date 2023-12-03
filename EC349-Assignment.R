@@ -140,8 +140,8 @@ business_data <- business_data %>%
   mutate(engagement = rowSums(!is.na(b_attributes)))
 
 # Check how businesses choose to fill the attributes according to categories?
-business_engagement <- business_data %>% 
-  select(name, review_count, categories, engagement)
+# business_engagement <- business_data %>% 
+#   select(name, review_count, categories, engagement)
 
 # Find category count and see how it's distributed:
 
@@ -158,14 +158,14 @@ business_engagement <- business_data %>%
 # Looks pretty useless, instead categorise the businesses, bars & restaurants, financial services etc.? Would love to use unsupervised machine learning for classification but I don't think I have the time to actually learn.
 # Try creating a character vector to add up all the words between commas and then use unique function to see what unique responses there are?
 
-categories <- paste(business_engagement$categories, collapse = ",")
-categories <- strsplit(categories, ",")
-categories <- lapply(categories, str_trim)
-unique_categories <- unique(unlist(categories))
-print(unique_categories)
-unique_categories <- str_replace_all(unique_categories, " ", "")
-unique_categories_matrix <- matrix(unique_categories, ncol = 1, byrow= TRUE)
-unique_categories <- as.data.frame(unique_categories_matrix)
+# categories <- paste(business_engagement$categories, collapse = ",")
+# categories <- strsplit(categories, ",")
+# categories <- lapply(categories, str_trim)
+# unique_categories <- unique(unlist(categories))
+# print(unique_categories)
+# unique_categories <- str_replace_all(unique_categories, " ", "")
+# unique_categories_matrix <- matrix(unique_categories, ncol = 1, byrow= TRUE)
+# unique_categories <- as.data.frame(unique_categories_matrix)
 
 # There are 1300+ unique categories, how would I do this? Should I check which categories are most engaged with yelp or review count by creating a category variable and parsing each business's category strings to determine most important categories?
 # unique_categories_list <- list(unique_categories)
@@ -183,8 +183,6 @@ unique_categories <- as.data.frame(unique_categories_matrix)
 # named_main_categories <- setNames(as.list(main_categories), main_categories)
 # main_categories.df <- data.frame(named_main_categories)
 # Useless, should've just used mutate to sort each category from the start!
-business_categories <- business_data %>% 
-  select(name, categories)
 
 business_data <- business_data %>% 
   mutate(Active_Life = if_else(str_detect(categories, "Active Life"), 1, 0),
@@ -221,8 +219,8 @@ business_hours <- business_data %>%
 # Trying a crude method of isolating observations with all NA's for opening hours
 b_hours <- business_data %>% 
   select(hours)
-business_hours <- business_hours %>% 
-  mutate(days_open = rowSums(!is.na(b_hours)))
+# business_hours <- business_hours %>% 
+#   mutate(days_open = rowSums(!is.na(b_hours)))
 business_data <- business_data %>% 
   mutate(days_open = rowSums(!is.na(b_hours)))
 # hours_NA <- business_hours %>% 
@@ -271,11 +269,29 @@ colnames(business_data)[9] <- "business_stars"
 colnames(business_data)[10] <- "business_review_count"
 
 
-business_data_cleaned <- business_data %>% 
-  select(business_id, city, state, latitude, longitude, business_stars, business_review_count, is_open, engagement, days_open, Arts_Entertainment, Automotive, 
-         Beauty_Spas, Education, Event_Planning_Services, Financial_Services, Food, Health_Medical, Home_Services, Hotels_Travel, Local_Flavor, 
+business_categories <- business_data %>% 
+  select(name, categories, Arts_Entertainment, Automotive, Beauty_Spas, Education, Event_Planning_Services, Financial_Services, Food, Health_Medical, Home_Services, Hotels_Travel, Local_Flavor, 
          Local_Services, Mass_Media, Nightlife, Pets, Professional_Services, Public_Services_Government, Real_Estate, Religious_Organizations, 
-         Restaurants, Shopping)
+         Restaurants, Shopping) 
+# Looks like some businesses didn't fill in categories, best to exclude them since they're relatively rare and could
+# be outliers
+no_categories <- business_data %>% 
+  filter(is.na(categories)) # Only 103 observations, safe to drop!
+
+business_data <- business_data %>% 
+  filter(!is.na(categories))
+
+business_data_cleaned <- business_data_cleaned %>% 
+  filter(!is.na(Active))
+
+save(business_data, file = "business_data_edited.Rdata")
+
+
+business_data_cleaned <- business_data %>% 
+  select(business_id, city, state, latitude, longitude, business_stars, business_review_count, is_open, engagement, days_open, Active_Life ,Arts_Entertainment, 
+         Automotive, Beauty_Spas, Education, Event_Planning_Services, Financial_Services, Food, Health_Medical, Home_Services, Hotels_Travel, 
+         Local_Flavor, Local_Services, Mass_Media, Nightlife, Pets, Professional_Services, Public_Services_Government, Real_Estate, 
+         Religious_Organizations, Restaurants, Shopping)
 
 
 checkin_data  <- stream_in(file("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_checkin.json")) #note that stream_in reads the json lines (as the files are json lines, not json)
@@ -323,6 +339,8 @@ review_data$review_since_date <- NULL
 # Not gonna do sentiment analysis for now, no time
 review_data$text <- NULL
 
+load("C:/Users/tantr/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/user_data_cleaned.Rdata")
+load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/user_data_cleaned.Rdata")
 # inner_join review to user
 review_data <- inner_join(review_data, user_data_cleaned, by = "user_id")
 review_data <- inner_join(review_data, business_data_cleaned, by = "business_id")
@@ -357,7 +375,7 @@ business_tip_count <- business_tip_count %>%
   mutate(business_id = as.character(business_id))
 
 save(user_tip_count, file = "user_tip_count.Rdata")
-save(user_tip_count, file = "business_tip_count.Rdata")
+save(business_tip_count, file = "business_tip_count.Rdata")
 
 review_data <- left_join(review_data, user_tip_count, by = "user_id")
 review_data <- left_join(review_data, business_tip_count, by = "business_id")
@@ -368,8 +386,86 @@ sum(is.na(review_data$business_tip_count)) # 492433 reviews for businesses who n
 review_data <- review_data %>% 
   mutate(business_tip_count = if_else(is.na(business_tip_count), 0, business_tip_count))
 
+# Some columns have NA values, go back to correct them!
+na_columns <- sapply(review_data, function(x) any(is.na(x)))
+print(na_columns)
+sum(is.na(review_data$Mass_Media)) # 689 reviews from businesses with no categories!
+# When I joined the data sets, did some businesses not have category data to begin with since I used innerjoin?
+na_columns_business <- sapply(business_data_cleaned, function(x) any(is.na(x)))
+print(na_columns_business)
+
+
+
 
 save(review_data, file = "review_data_cleaned.Rdata")
+load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/review_data_cleaned.Rdata")
+load("C:/Users/tantr/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/review_data_cleaned.Rdata")
 
 
+# install.packages("progress")
+library(progress)
+
+n_iter <- 100
+
+pb <- progress_bar$new(format = "(:spin) [:bar] :percent [Elapsed time: :elapsedfull || Estimated time remaining: :eta]",
+                       total = n_iter,
+                       complete = "=",   # Completion bar character
+                       incomplete = "-", # Incomplete bar character
+                       current = ">",    # Current bar character
+                       clear = FALSE,    # If TRUE, clears the bar when finish
+                       width = 100)      # Width of the progress bar
+
+for(i in 1:n_iter) {
+  
+  # Updates the current state
+  pb$tick()
+  
+  #---------------------
+  # Code to be executed
+  #---------------------
+  
+  Sys.sleep(0.1) # Remove this line and add your code
+  
+  #---------------------
+  
+}
+
+set.seed(1)
+# Create a separate partition within the data frame of the original data set to be called upon to create training vs test sets
+# The separate partition can be treated like a separate list and so can be called with a name in the row index
+review_partition <- createDataPartition(y = review_data$stars, 1, p = 0.75)
+# The partition is separate in the data frame of user and thus needs to be called when referring to the indices with user_data_small[]
+review_training_set <- review_data[review_partition[[1]], ]
+review_test_set <- review_data[-review_partition[[1]], ]
+
+vars_excluded <- c("review_id", "user_id", "business_id", "city", "state", "stars", "total_compliments")
+x <- as.matrix(review_training_set[,setdiff(names(review_training_set), vars_excluded)])
+y <- review_training_set$stars
+
+
+
+krid <- 10^seq(1,-15, length=100)
+cv.ridge_rev <- cv.glmnet(x, y, alpha=0, lambda = krid) # Returned warnings in regularizing values, high collinearity in variables?
+ print(cv.ridge_rev)
+plot(cv.ridge_rev)
+print(cv.ridge_rev$lambda.min) # minLambda =2.10491e-15
+lambda.ridge <- cv.ridge_rev$lambda.min
+#dcGmatrix needs to be converted into proper matrix before conversion into dataframe to be viewed
+#matrix is stored as a value and cannot be viewed and saved as data directly to do that you need to convert into data frame
+coef.ridge <- as.matrix(coef(cv.ridge_rev, s= lambda.ridge))
+coef.ridge.df <- as.data.frame(coef.ridge)
+min.mse <- min(cv.ridge_rev$cvm) 
+print(min.mse) # minMSE = 1.371429
+
+# Test the MSE of Ridge
+x_test <- as.matrix(review_test_set[, setdiff(names(review_test_set), vars_excluded)])
+y_test <- review_test_set$stars
+
+predicted_stars <- predict(cv.ridge_rev, newx = x_test, s = "lambda.min")
+
+mse <- mean((predicted_stars - y_test) ^ 2)
+print(mse) # 1.1841 with L1/ridge, let's try LASSO!
+
+cv.lasso_rev <- cv.glmnet(x, y, alpha=1, lambda = krid) # expected to fail because of previous high collinearity warnings
+predicted_stars <- predict(cv.lasso_rev, newx = x_test, s)
 
