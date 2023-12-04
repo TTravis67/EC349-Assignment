@@ -305,6 +305,12 @@ load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/EC34
 # load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/review_data.Rdata")
 # 6990247 obs
 # 7 million observations too big, can't run random forest!
+# days_0 <- review_data %>%
+#   filter(days_open == 0) # Nearly 400k reviews with business with no opening hours, could drop days_open entirely tbh
+# review_data <- review_data %>%
+#   filter(days_open > 0) # I don't believe days open truly affects how well a user may rate a business, feels like noise, will remove in proper model
+
+
 
 load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/Small Datasets/yelp_review_small.Rda")
 review_data_small$review_id <- NULL
@@ -378,33 +384,136 @@ review_data_small_prepped$business_id <- NULL
 
 
 save(review_data_small_prepped, file = "review_data_small_prepped.Rdata")
+
+# This is where I would clear memory, reload libraries and only load this file so environment is cleaner!
+rm(list = ls())
 load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/review_data_small_prepped.Rdata")
 
-review_data <- review_data %>% 
-  mutate(review_id = NULL, 
-         user_id = NULL, 
-         business_id = NULL)
-review_data <- review_data %>% 
-  mutate(compliment_hot = NULL, compliment_more=NULL, compliment_profile=NULL, compliment_cute=NULL, compliment_list=NULL, compliment_note=NULL,
-         compliment_plain=NULL, compliment_cool=NULL, compliment_funny=NULL)
-review_data <- review_data %>% 
-  mutate(city=NULL)
-# review_data <- review_data %>% 
-#   mutate(checkin_count=NULL, user_tip_count=NULL, business_tip_count=NULL)
+library(jsonlite)
+library(tidyverse)
+library(lubridate)
+library(caret)
+library(glmnet)
+library(tree)
+library(rpart)
+library(rpart.plot)
+library(ipred)
+library(randomForest)
+library(adabag)
 
-review_data <- review_data %>%
-  mutate(stars = as.factor(stars))
-review_data <- review_data %>% 
-  mutate(stars = as.numeric(stars))
-# review_data <- review_data %>% 
-#   select(23:44) %>%  
-#   mutate(across(everything(), ~NA))
+# FIRST! TEST LASSO!
+set.seed(1)
+# Create a separate partition within the data frame of the original data set to be called upon to create training vs test sets
+# The separate partition can be treated like a separate list and so can be called with a name in the row index
+review_partition <- createDataPartition(y = review_data_small_prepped$stars, 1, p = 0.75)
+# The partition is separate in the data frame of user and thus needs to be called when referring to the indices with user_data_small[]
+review_training_set <- review_data_small_prepped[review_partition[[1]], ]
+review_test_set <- review_data_small_prepped[-review_partition[[1]], ]
+
+vars_excluded <- c("stars", "state")
+x <- as.matrix(review_training_set[,setdiff(names(review_training_set), vars_excluded)])
+y <- review_training_set$stars
 
 
-# days_0 <- review_data %>%
-#   filter(days_open == 0) # Nearly 400k reviews with business with no opening hours, could drop days_open entirely tbh
-# review_data <- review_data %>%
-#   filter(days_open > 0) # I don't believe days open truly affects how well a user may rate a business, feels like noise, will remove in proper model
+grid <- 10^seq(0,-15, length=150)
+cv.lasso_rev <- cv.glmnet(x, y, alpha=1, lambda = grid) # Returned warnings in regularizing values, high collinearity in variables?
+print(cv.lasso_rev)
+plot(cv.lasso_rev)
+print(cv.lasso_rev$lambda.min) # minLambda =1.260872e-15
+lambda.lasso <- cv.lasso_rev$lambda.min
+#dcGmatrix needs to be converted into proper matrix before conversion into dataframe to be viewed
+#matrix is stored as a value and cannot be viewed and saved as data directly to do that you need to convert into data frame
+coef.lasso <- as.matrix(coef(cv.lasso_rev, s= lambda.lasso))
+coef.lasso.df <- as.data.frame(coef.lasso)
+min.mse.lasso <- min(cv.lasso_rev$cvm)
+print(min.mse.lasso) # MSE in training 1.190937
+
+# Test the MSE of LASSO
+x_test <- as.matrix(review_test_set[, setdiff(names(review_test_set), vars_excluded)])
+y_test <- review_test_set$stars
+predicted_stars <- predict(cv.lasso_rev, newx = x_test, s = "lambda.min")
+mse_lasso <- mean((predicted_stars - y_test) ^ 2)
+print(mse_lasso) # 1.181076 with L1/LASSO, let's try Ridge!
+
+
+# Ridge attempt
+cv.ridge <- cv.glmnet(x, y, alpha=1, lambda = grid) # Returned warnings in regularizing values, high collinearity in variables?
+print(cv.ridge)
+plot(cv.ridge)
+print(cv.ridge$lambda.min) # minLambda for ridge =3.186807e-15
+lambda.ridge <- cv.ridge$lambda.min
+#dcGmatrix needs to be converted into proper matrix before conversion into dataframe to be viewed
+#matrix is stored as a value and cannot be viewed and saved as data directly to do that you need to convert into data frame
+coef.ridge <- as.matrix(coef(cv.ridge, s= lambda.lasso))
+coef.ridge.df <- as.data.frame(coef.ridge)
+min.mse.ridge <- min(cv.ridge$cvm)
+print(min.mse.ridge) # MSE in training 1.191861
+
+# Test the MSE of LASSO
+x_test <- as.matrix(review_test_set[, setdiff(names(review_test_set), vars_excluded)])
+y_test <- review_test_set$stars
+predicted_stars_ridge <- predict(cv.ridge, newx = x_test, s = "lambda.min")
+test_mse_ridge <- mean((predicted_stars_ridge - y_test) ^ 2)
+print(test_mse_ridge) # 1.181077 with L2/Ridge no difference in either
+
+
+
+
+
+
+# Re-clear memory! Reload libraries and only load this file so environment is cleaner!
+rm(list = ls())
+load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/review_data_small_prepped.Rdata")
+
+library(jsonlite)
+library(tidyverse)
+library(lubridate)
+library(caret)
+library(glmnet)
+library(tree)
+library(rpart)
+library(rpart.plot)
+library(ipred)
+library(randomForest)
+library(adabag)
+
+review_data_small_prepped <- review_data_small_prepped %>% 
+  mutate(stars=as.factor(stars))
+
+model_RF<-randomForest(stars~.,data=review_training_set, ntree=100)
+mean(model_RF[["err.rate"]]) # 0.5586984 mean oob error
+pred_RF_test = predict(model_RF, review_test_set)
+actual_values <- review_test_set$stars
+test_set_error_rate <- mean(pred_RF_test != actual_values) # 0.4033255 test set error rate
+
+model_RF_200<-randomForest(stars~.,data=review_training_set, ntree=200)
+mean(model_RF_200[["err.rate"]]) # 0.552618 mean oob error
+pred_RF_test_200 = predict(model_RF_200, review_test_set)
+actual_values <- review_test_set$stars
+test_set_error_rate_200 <- mean(pred_RF_test_200 != actual_values) # 0.4010335 test set error rate
+
+model_adaboost <- boosting(stars~ ., data=review_training_set, boos=TRUE, mfinal=50)
+actual_values <- review_test_set$stars
+pred_test_ada50 <- predict(model_adaboost, review_test_set)
+test_error_rate_ada50 <- mean(pred_test_ada50$class != actual_values)
+print(test_error_rate_ada50) # test_error_rate_ada50= 0.4529454
+
+model_adaboost_stump100 <- boosting(stars~ ., data=review_training_set, boos=TRUE, mfinal=100)
+actual_values <- review_test_set$stars
+pred_test_ada100 <- predict(model_adaboost_stump100, review_test_set)
+test_error_rate_ada100 <- mean(pred_test_ada100$class != actual_values)
+print(test_error_rate_ada100) # test_error_rate_ada100= 0.4529025
+
+bag <- bagging(stars~., data=review_training_set, nbagg = 50,   
+               coob = TRUE, control = rpart.control(minsplit = 2, cp = 0.1)
+)
+actual_values <- review_test_set$stars
+pred_test <- predict(bag, review_test_set)
+test_set_error_rate_cp.1 <- mean(pred_test$class != actual_values)
+print(test_set_error_rate_cp.1)
+print(pred_test$error) # 0.4803091 mean error rate
+
+
 
 
 
