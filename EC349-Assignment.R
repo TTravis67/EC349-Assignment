@@ -5,20 +5,21 @@ library(jsonlite)
 
 library(tidyverse)
 library(lubridate)
-
 library(caret)
 library(glmnet)
+library(tree)
+library(rpart)
+library(rpart.plot)
+library(ipred)
+library(randomForest)
+library(adabag)
 
-#Clear
-cat("\014")  
-rm(list=ls())
+
 #Convert data into R_data file for more efficient storage and ram usage.
 user_data <- stream_in(file("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_user.json"))
-user_data <- stream_in(file("C:/Users/tantr/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_user.json"))
 save(user_data, file = "user_data.Rdata")
 rm(user_data)
 load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/user_data.Rdata")
-load("C:/Users/tantr/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/user_data.Rdata")
 
 summary(user_data$yelping_since)
 # date in character, convert into dates
@@ -67,55 +68,25 @@ colnames(user_data)[7] <- "total_cool"
 colnames(user_data)[10] <- "total_fans"
 colnames(user_data)[11] <- "user_average_stars"
 
-# Base R, was very annoying to do, should have done dplyr like below
-user_data_cleaned <- user_data[, c("user_id", "review_count", "yelping_since", "useful", "funny", "cool", "fans", "average_stars", 
-                                         "elite_year_count", "friend_count", "total_compliments")]
+# # Base R, was very annoying to do, should have done dplyr like below
+# user_data_cleaned <- user_data[, c("user_id", "review_count", "yelping_since", "useful", "funny", "cool", "fans", "average_stars", 
+#                                          "elite_year_count", "friend_count", "total_compliments")]
+
 # Definitely do this next time!
 user_data_cleaned <- user_data %>% 
   select(user_id, user_review_count, years_on_yelp, total_useful, total_funny, total_cool, user_average_stars, elite_year_count, friend_count,
          total_fans, compliment_hot, compliment_more, compliment_profile, compliment_cute, compliment_list, compliment_note, compliment_plain, 
-         compliment_cool, compliment_funny, total_compliments)
+         compliment_cool, compliment_funny)
 user_data_cleaned$yelping_since <- NULL
 
 #Rda files less ram intensive and more efficient storage!
 save(user_data_cleaned, file = "user_data_cleaned.Rdata")
-load("C:/Users/tantr/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/user_data_cleaned.Rdata")
 load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/user_data_cleaned.Rdata")
 
 #Check for outliers with review and 
 
-set.seed(1)
-# Create a separate partition within the data frame of the original data set to be called upon to create training vs test sets
-# The separate partition can be treated like a separate list and so can be called with a name in the row index
-user_partition <- createDataPartition(y = user_data_cleaned$average_stars, 1, p = 0.75)
-# The partition is separate in the data frame of user and thus needs to be called when referring to the indices with user_data_small[]
-user_training_set <- user_data_cleaned[user_partition[[1]], ]
-user_test_set <- user_data_cleaned[-user_partition[[1]], ]
-
-vars_excluded <- c("average_stars", "user_id", "yelping_since")
-x <- as.matrix(user_training_set[,setdiff(names(user_training_set), vars_excluded)])
-y <- user_training_set$average_stars
-
-
-krid <- 10^seq(-1,-15, length=150)
-cv.ridgeu <- cv.glmnet(x, y, alpha=0, lambda = krid)
-print(cv.ridgeu)
-plot(cv.ridgeu)
-print(cv.ridgeu$lambda.min) # minLambda = 5.306794e-13
-lambda.ridge <- cv.ridgeu$lambda.min
-#dcGmatrix needs to be converted into proper matrix before conversion into dataframe to be viewed
-#matrix is stored as a value and cannot be viewed and saved as data directly to do that you need to convert into data frame
-coef.ridge <- as.matrix(coef(cv.ridgeu, s= lambda.ridge))
-coef.ridge.df <- as.data.frame(coef.ridge)
-min.mse <- min(cv.ridgeu$cvm) 
-print(min.mse) # minMSE = 1.371429
-# Just a test with cv.ridge!
-
-
 business_data <- stream_in(file("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_business.json")) #note that stream_in reads the json lines (as the files are json lines, not json)
-business_data <- stream_in(file("C:/Users/tantr/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_business.json")) #note that stream_in reads the json lines (as the files are json lines, not json), laptops' path
 save(business_data, file = "business_data.Rdata")
-load("C:/Users/tantr/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/business_data.Rdata")
 load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/business_data.Rdata")
 
 
@@ -184,45 +155,55 @@ business_data <- business_data %>%
 # main_categories.df <- data.frame(named_main_categories)
 # Useless, should've just used mutate to sort each category from the start!
 
+# business_data <- business_data %>% 
+#   mutate(Active_Life = if_else(str_detect(categories, "Active Life"), 1, 0),
+#          Arts_Entertainment = if_else(str_detect(categories, "Arts & Entertainment"), 1, 0),
+#          Automotive = if_else(str_detect(categories, "Automotive"), 1, 0),
+#          Beauty_Spas = if_else(str_detect(categories, "Beauty & Spas"), 1, 0),
+#          Education = if_else(str_detect(categories, "Education"), 1, 0),
+#          Event_Planning_Services = if_else(str_detect(categories, "Event Planning & Services"), 1, 0),
+#          Financial_Services = if_else(str_detect(categories, "Financial Services"), 1, 0),
+#          Food = if_else(str_detect(categories, "Food"), 1, 0),
+#          Health_Medical = if_else(str_detect(categories, "Health & Medical"), 1, 0),
+#          Home_Services = if_else(str_detect(categories, "Home Services"), 1, 0),
+#          Hotels_Travel = if_else(str_detect(categories, "Hotels & Travel"), 1, 0),
+#          Local_Flavor = if_else(str_detect(categories, "Local Flavor"), 1, 0),
+#          Local_Services = if_else(str_detect(categories, "Local Services"), 1, 0),
+#          Mass_Media = if_else(str_detect(categories, "Mass Media"), 1, 0),
+#          Nightlife = if_else(str_detect(categories, "Nightlife"), 1, 0),
+#          Pets = if_else(str_detect(categories, "Pets"), 1, 0),
+#          Professional_Services = if_else(str_detect(categories, "Professional Services"), 1, 0),
+#          Public_Services_Government = if_else(str_detect(categories, "Public Services & Government"), 1, 0),
+#          Real_Estate = if_else(str_detect(categories, "Real Estate"), 1, 0),
+#          Religious_Organizations = if_else(str_detect(categories, "Religious Organizations"), 1, 0),
+#          Restaurants = if_else(str_detect(categories, "Restaurants"), 1, 0),
+#          Shopping = if_else(str_detect(categories, "Shopping"), 1, 0)
+#   )
+
+# Further refine into this:
+
 business_data <- business_data %>% 
-  mutate(Active_Life = if_else(str_detect(categories, "Active Life"), 1, 0),
-         Arts_Entertainment = if_else(str_detect(categories, "Arts & Entertainment"), 1, 0),
-         Automotive = if_else(str_detect(categories, "Automotive"), 1, 0),
-         Beauty_Spas = if_else(str_detect(categories, "Beauty & Spas"), 1, 0),
-         Education = if_else(str_detect(categories, "Education"), 1, 0),
-         Event_Planning_Services = if_else(str_detect(categories, "Event Planning & Services"), 1, 0),
-         Financial_Services = if_else(str_detect(categories, "Financial Services"), 1, 0),
-         Food = if_else(str_detect(categories, "Food"), 1, 0),
-         Health_Medical = if_else(str_detect(categories, "Health & Medical"), 1, 0),
-         Home_Services = if_else(str_detect(categories, "Home Services"), 1, 0),
-         Hotels_Travel = if_else(str_detect(categories, "Hotels & Travel"), 1, 0),
-         Local_Flavor = if_else(str_detect(categories, "Local Flavor"), 1, 0),
-         Local_Services = if_else(str_detect(categories, "Local Services"), 1, 0),
-         Mass_Media = if_else(str_detect(categories, "Mass Media"), 1, 0),
+  mutate(Food = if_else(str_detect(categories, "Food"), 1, 0),
          Nightlife = if_else(str_detect(categories, "Nightlife"), 1, 0),
-         Pets = if_else(str_detect(categories, "Pets"), 1, 0),
-         Professional_Services = if_else(str_detect(categories, "Professional Services"), 1, 0),
-         Public_Services_Government = if_else(str_detect(categories, "Public Services & Government"), 1, 0),
-         Real_Estate = if_else(str_detect(categories, "Real Estate"), 1, 0),
-         Religious_Organizations = if_else(str_detect(categories, "Religious Organizations"), 1, 0),
+         Shopping = if_else(str_detect(categories, "Shopping"), 1, 0),
+         Bars = if_else(str_detect(categories, "Bars"), 1, 0),
+         Fashion = if_else(str_detect(categories, "Fashion"), 1, 0),
          Restaurants = if_else(str_detect(categories, "Restaurants"), 1, 0),
-         Shopping = if_else(str_detect(categories, "Shopping"), 1, 0)
+         Grocery = if_else(str_detect(categories, "Grocery"), 1, 0)
   )
 
 # Need to figure out how to convert things into
 
 # Also need to figure out what to do with opening hours.Some businesses don't bother filling out the times at which they're open, while others leave blank when they're not open, how would I deal with this?
 # Either exclude NA observations with opening times or match opening days to the other most similar business's opening hours. I choose the latter.
-business_hours <- business_data %>% 
-  select(name, review_count, city, state, postal_code, is_open, categories, hours)
+# business_hours <- business_data %>% 
+#   select(name, review_count, city, state, postal_code, is_open, categories, hours)
 
 # Trying a crude method of isolating observations with all NA's for opening hours
-b_hours <- business_data %>% 
-  select(hours)
-# business_hours <- business_hours %>% 
+# b_hours <- business_data %>% 
+#   select(hours)
+# business_data <- business_data %>% 
 #   mutate(days_open = rowSums(!is.na(b_hours)))
-business_data <- business_data %>% 
-  mutate(days_open = rowSums(!is.na(b_hours)))
 # hours_NA <- business_hours %>% 
 #   filter(days_open == 0)
 
@@ -244,6 +225,7 @@ business_data <- business_data %>%
 # Could they be outliers in this case? Should I drop them?
 # Don't drop them, even if there are some outliers, dropping them when there are also business owners who are genuinely open.
 # Try both ways and see what happens? Keep it first and fit a regression tree with it, for now we use days open and see what happens.
+# Just drop days_0 observations when doing bagging.
 
 # Figure out business attributes now:
 # business_attributes <- business_data %>% 
@@ -268,11 +250,16 @@ business_data <- business_data %>%
 colnames(business_data)[9] <- "business_stars"
 colnames(business_data)[10] <- "business_review_count"
 
+no_categories <- business_data %>% 
+  filter(is.na(categories)) # Only 103 observations, safe to drop!
 
-business_categories <- business_data %>% 
-  select(name, categories, Arts_Entertainment, Automotive, Beauty_Spas, Education, Event_Planning_Services, Financial_Services, Food, Health_Medical, Home_Services, Hotels_Travel, Local_Flavor, 
-         Local_Services, Mass_Media, Nightlife, Pets, Professional_Services, Public_Services_Government, Real_Estate, Religious_Organizations, 
-         Restaurants, Shopping) 
+business_data <- business_data %>% 
+  filter(!is.na(categories))
+
+# business_categories <- business_data %>% 
+#   select(name, categories, Arts_Entertainment, Automotive, Beauty_Spas, Education, Event_Planning_Services, Financial_Services, Food, Health_Medical, Home_Services, Hotels_Travel, Local_Flavor, 
+#          Local_Services, Mass_Media, Nightlife, Pets, Professional_Services, Public_Services_Government, Real_Estate, Religious_Organizations, 
+#          Restaurants, Shopping) 
 # Looks like some businesses didn't fill in categories, best to exclude them since they're relatively rare and could
 # be outliers
 no_categories <- business_data %>% 
@@ -281,80 +268,65 @@ no_categories <- business_data %>%
 business_data <- business_data %>% 
   filter(!is.na(categories))
 
-business_data_cleaned <- business_data_cleaned %>% 
-  filter(!is.na(Active))
-
-save(business_data, file = "business_data_edited.Rdata")
-
-
-business_data_cleaned <- business_data %>% 
-  select(business_id, city, state, latitude, longitude, business_stars, business_review_count, is_open, engagement, days_open, Active_Life ,Arts_Entertainment, 
-         Automotive, Beauty_Spas, Education, Event_Planning_Services, Financial_Services, Food, Health_Medical, Home_Services, Hotels_Travel, 
-         Local_Flavor, Local_Services, Mass_Media, Nightlife, Pets, Professional_Services, Public_Services_Government, Real_Estate, 
-         Religious_Organizations, Restaurants, Shopping)
-
 
 checkin_data  <- stream_in(file("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_checkin.json")) #note that stream_in reads the json lines (as the files are json lines, not json)
-checkin_data  <- stream_in(file("C:/Users/tantr/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_checkin.json")) #note that stream_in reads the json lines (as the files are json lines, not json), laptops' path
 
 # Check which businesses have checkins
-checkin_data <- checkin_data %>% 
+checkin_data <- checkin_data %>%
   mutate(checkin_count = 1 + str_count(date, ","))
-colnames(checkin_data)[2] <- "checkin_dates"
-business_data_cleaned <- left_join(business_data_cleaned, checkin_data, by = "business_id")
-business_data_cleaned$checkin_dates <- NULL
-sum(is.na(business_data_cleaned$checkin_count))
-# 18416 have NA's, that means no one checked in? Need to verify whether there are 0's in the dataset!Cannot use sum(if_else) because of NA's present
-summary(business_data_cleaned$checkin_count) # Min = 1, so NA means 0 checkin's
-business_data_cleaned <- business_data_cleaned %>% 
+checkin_data$date <- NULL
+business_data <- left_join(business_data, checkin_data, by = "business_id")
+
+sum(is.na(business_data$checkin_count))
+# 18359 have NA's, that means no one checked in? Need to verify whether there are 0's in the dataset!Cannot use sum(if_else) because of NA's present
+summary(business_data$checkin_count) # Min = 1, so NA means 0 checkin's
+business_data <- business_data %>% 
   mutate(checkin_count = if_else(is.na(checkin_count), 0, checkin_count))
 
+# business_data_cleaned <- business_data %>% 
+#   select(business_id, city, state, latitude, longitude, business_stars, business_review_count, is_open, engagement, days_open, Active_Life ,Arts_Entertainment, 
+#          Automotive, Beauty_Spas, Education, Event_Planning_Services, Financial_Services, Food, Health_Medical, Home_Services, Hotels_Travel, 
+#          Local_Flavor, Local_Services, Mass_Media, Nightlife, Pets, Professional_Services, Public_Services_Government, Real_Estate, 
+#          Religious_Organizations, Restaurants, Shopping)
 
-save(business_data_cleaned, file = "business_data_cleaned.Rdata")
+# Category refinement 
+business_data_prepped <- business_data %>% 
+  select(business_id, state, latitude, longitude, business_stars, business_review_count, engagement, Food, Nightlife, Shopping, Bars, Fashion, 
+         Restaurants, Grocery, checkin_count)
 
-load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/business_data_cleaned.Rdata")
-load("C:/Users/tantr/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/business_data_cleaned.Rdata")
 
-# load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/Small Datasets/yelp_review_small.Rda")
-# load("C:/Users/tantr/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/Small Datasets/yelp_review_small.Rda")
+save(business_data_prepped, file = "business_data_prepped.Rdata")
+load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/business_data_prepped.Rdata")
 
-review_data <- stream_in(file("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_review.json"))
-review_data <- stream_in(file("C:/Users/tantr/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_review.json"))
-save(review_data, file = "review_data.Rdata")
-rm(review_data)
-load("C:/Users/tantr/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/review_data.Rdata")
-load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/review_data.Rdata")
+
+# review_data <- stream_in(file("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_review.json"))
+# save(review_data, file = "review_data.Rdata")
+# rm(review_data)
+# load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/review_data.Rdata")
 # 6990247 obs
+# 7 million observations too big, can't run random forest!
 
-review_data <- review_data %>% 
+load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/Small Datasets/yelp_review_small.Rda")
+review_data_small$review_id <- NULL
+review_data_small$text <- NULL
+save(review_data_small, file = "review_data_small_cleaned.Rdata")
+load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/review_data_small_cleaned.Rdata")
+
+# Converting review dates into review age
+review_data_small <- review_data_small %>% 
   mutate(date = ymd_hms(date))
-review_data <- review_data %>%
+review_data_small <- review_data_small %>%
   mutate(
     review_since_date = as.Date(date),
     review_age = as.numeric(difftime(ymd("2023-01-01"), review_since_date, units = "days")) / 365.25, # Calculate duration in years
   )
-review_data$date <- NULL
-review_data$review_since_date <- NULL
-
-# Not gonna do sentiment analysis for now, no time
-review_data$text <- NULL
-
-load("C:/Users/tantr/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/user_data_cleaned.Rdata")
-load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/user_data_cleaned.Rdata")
-# inner_join review to user
-review_data <- inner_join(review_data, user_data_cleaned, by = "user_id")
-review_data <- inner_join(review_data, business_data_cleaned, by = "business_id")
-review_data$yelping_since <- NULL
-
-save(review_data, file = "review_data_cleaned.Rdata")
-
-# To calculate total number of tips a user gave out, make user_id in tip data factor and find how many times each factor shows up?
-
+review_data_small$date <- NULL
+review_data_small$review_since_date <- NULL
 
 tip_data <- stream_in(file("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_tip.json"))
-tip_data <- stream_in(file("C:/Users/tantr/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/yelp_academic_dataset_tip.json"))
 
 # 908915 obs for tip data, trying to find how many tips each user and each business gave!
+# To calculate total number of tips a user gave out, make user_id in tip data factor and find how many times each factor shows up?
 tip_data <- tip_data %>% 
   mutate(as.factor(user_id),
          as.factor(business_id))
@@ -364,7 +336,7 @@ user_tip_count <- as.data.frame(user_level_counts)
 colnames(user_tip_count)[1] <- "user_id"
 colnames(user_tip_count)[2] <- "user_tip_count"
 user_tip_count <- user_tip_count %>% 
-  mutate(user_id = as.character(user_id))
+  mutate(user_id = as.character(user_id)) # Convert from factor back into character for joining later
 
 # business_tip_count computation
 business_level_counts <- table(tip_data$`as.factor(business_id)`)
@@ -374,98 +346,73 @@ colnames(business_tip_count)[2] <- "business_tip_count"
 business_tip_count <- business_tip_count %>% 
   mutate(business_id = as.character(business_id))
 
+# Tip count files
 save(user_tip_count, file = "user_tip_count.Rdata")
 save(business_tip_count, file = "business_tip_count.Rdata")
 
-review_data <- left_join(review_data, user_tip_count, by = "user_id")
-review_data <- left_join(review_data, business_tip_count, by = "business_id")
-sum(is.na(review_data$user_tip_count)) # 4184814 reviews by users who never gave tips
-review_data <- review_data %>% 
+# Joining review and tip data
+review_data_small <- left_join(review_data_small, user_tip_count, by = "user_id")
+review_data_small <- left_join(review_data_small, business_tip_count, by = "business_id")
+# Verifying
+sum(is.na(review_data_small$user_tip_count)) # Previously 4184814 reviews in big data, 837536 in small, by users who never gave tips
+review_data_small <- review_data_small %>% 
   mutate(user_tip_count = if_else(is.na(user_tip_count), 0, user_tip_count))
-sum(is.na(review_data$business_tip_count)) # 492433 reviews for businesses who never received tips
-review_data <- review_data %>% 
+sum(is.na(review_data_small$business_tip_count)) # Previously 492433 reviews in big data, 98305 in small, by businesses who never received tips
+review_data_small <- review_data_small %>% 
   mutate(business_tip_count = if_else(is.na(business_tip_count), 0, business_tip_count))
 
-# Some columns have NA values, go back to correct them!
-na_columns <- sapply(review_data, function(x) any(is.na(x)))
+# Load prepped and cleaned user and biz data
+load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/user_data_cleaned.Rdata")
+load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/business_data_prepped.Rdata")
+
+
+# inner_join review data to user and businesses so we don't generate empty reviews by users or businesses who give or receive no reviews
+review_data_small_prepped <- inner_join(review_data_small, user_data_cleaned, by = "user_id")
+review_data_small_prepped <- inner_join(review_data_small, business_data_prepped, by = "business_id")
+# Verify for no NA values in any columns
+na_columns <- sapply(review_data_small_prepped, function(x) any(is.na(x))) 
 print(na_columns)
-sum(is.na(review_data$Mass_Media)) # 689 reviews from businesses with no categories!
+review_data_small_prepped$user_id <- NULL
+review_data_small_prepped$business_id <- NULL
+review_data_small_prepped$total_compliments <- NULL
+
+
+save(review_data, file = "review_data_cleaned.Rdata")
+
 # When I joined the data sets, did some businesses not have category data to begin with since I used innerjoin?
 na_columns_business <- sapply(business_data_cleaned, function(x) any(is.na(x)))
 print(na_columns_business)
 
 
 
-
 save(review_data, file = "review_data_cleaned.Rdata")
 load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/review_data_cleaned.Rdata")
-load("C:/Users/tantr/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/review_data_cleaned.Rdata")
+
+review_data <- review_data %>% 
+  mutate(review_id = NULL, 
+         user_id = NULL, 
+         business_id = NULL)
+review_data <- review_data %>% 
+  mutate(compliment_hot = NULL, compliment_more=NULL, compliment_profile=NULL, compliment_cute=NULL, compliment_list=NULL, compliment_note=NULL,
+         compliment_plain=NULL, compliment_cool=NULL, compliment_funny=NULL)
+review_data <- review_data %>% 
+  mutate(city=NULL)
+# review_data <- review_data %>% 
+#   mutate(checkin_count=NULL, user_tip_count=NULL, business_tip_count=NULL)
+
+review_data <- review_data %>%
+  mutate(stars = as.factor(stars))
+review_data <- review_data %>% 
+  mutate(stars = as.numeric(stars))
+# review_data <- review_data %>% 
+#   select(23:44) %>%  
+#   mutate(across(everything(), ~NA))
 
 
-# install.packages("progress")
-library(progress)
-
-n_iter <- 100
-
-pb <- progress_bar$new(format = "(:spin) [:bar] :percent [Elapsed time: :elapsedfull || Estimated time remaining: :eta]",
-                       total = n_iter,
-                       complete = "=",   # Completion bar character
-                       incomplete = "-", # Incomplete bar character
-                       current = ">",    # Current bar character
-                       clear = FALSE,    # If TRUE, clears the bar when finish
-                       width = 100)      # Width of the progress bar
-
-for(i in 1:n_iter) {
-  
-  # Updates the current state
-  pb$tick()
-  
-  #---------------------
-  # Code to be executed
-  #---------------------
-  
-  Sys.sleep(0.1) # Remove this line and add your code
-  
-  #---------------------
-  
-}
-
-set.seed(1)
-# Create a separate partition within the data frame of the original data set to be called upon to create training vs test sets
-# The separate partition can be treated like a separate list and so can be called with a name in the row index
-review_partition <- createDataPartition(y = review_data$stars, 1, p = 0.75)
-# The partition is separate in the data frame of user and thus needs to be called when referring to the indices with user_data_small[]
-review_training_set <- review_data[review_partition[[1]], ]
-review_test_set <- review_data[-review_partition[[1]], ]
-
-vars_excluded <- c("review_id", "user_id", "business_id", "city", "state", "stars", "total_compliments")
-x <- as.matrix(review_training_set[,setdiff(names(review_training_set), vars_excluded)])
-y <- review_training_set$stars
+# days_0 <- review_data %>%
+#   filter(days_open == 0) # Nearly 400k reviews with business with no opening hours, could drop days_open entirely tbh
+# review_data <- review_data %>%
+#   filter(days_open > 0) # I don't believe days open truly affects how well a user may rate a business, feels like noise, will remove in proper model
 
 
-
-krid <- 10^seq(1,-15, length=100)
-cv.ridge_rev <- cv.glmnet(x, y, alpha=0, lambda = krid) # Returned warnings in regularizing values, high collinearity in variables?
- print(cv.ridge_rev)
-plot(cv.ridge_rev)
-print(cv.ridge_rev$lambda.min) # minLambda =2.10491e-15
-lambda.ridge <- cv.ridge_rev$lambda.min
-#dcGmatrix needs to be converted into proper matrix before conversion into dataframe to be viewed
-#matrix is stored as a value and cannot be viewed and saved as data directly to do that you need to convert into data frame
-coef.ridge <- as.matrix(coef(cv.ridge_rev, s= lambda.ridge))
-coef.ridge.df <- as.data.frame(coef.ridge)
-min.mse <- min(cv.ridge_rev$cvm) 
-print(min.mse) # minMSE = 1.371429
-
-# Test the MSE of Ridge
-x_test <- as.matrix(review_test_set[, setdiff(names(review_test_set), vars_excluded)])
-y_test <- review_test_set$stars
-
-predicted_stars <- predict(cv.ridge_rev, newx = x_test, s = "lambda.min")
-
-mse <- mean((predicted_stars - y_test) ^ 2)
-print(mse) # 1.1841 with L1/ridge, let's try LASSO!
-
-cv.lasso_rev <- cv.glmnet(x, y, alpha=1, lambda = krid) # expected to fail because of previous high collinearity warnings
-predicted_stars <- predict(cv.lasso_rev, newx = x_test, s)
 
