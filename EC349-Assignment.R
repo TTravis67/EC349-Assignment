@@ -368,25 +368,17 @@ load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/EC34
 
 # inner_join review data to user and businesses so we don't generate empty reviews by users or businesses who give or receive no reviews
 review_data_small_prepped <- inner_join(review_data_small, user_data_cleaned, by = "user_id")
-review_data_small_prepped <- inner_join(review_data_small, business_data_prepped, by = "business_id")
+review_data_small_prepped <- inner_join(review_data_small_prepped, business_data_prepped, by = "business_id")
 # Verify for no NA values in any columns
 na_columns <- sapply(review_data_small_prepped, function(x) any(is.na(x))) 
 print(na_columns)
 review_data_small_prepped$user_id <- NULL
 review_data_small_prepped$business_id <- NULL
-review_data_small_prepped$total_compliments <- NULL
+# review_data_small_prepped$total_compliments <- NULL # Old variable from summing up all compliments
 
 
-save(review_data, file = "review_data_cleaned.Rdata")
-
-# When I joined the data sets, did some businesses not have category data to begin with since I used innerjoin?
-na_columns_business <- sapply(business_data_cleaned, function(x) any(is.na(x)))
-print(na_columns_business)
-
-
-
-save(review_data, file = "review_data_cleaned.Rdata")
-load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/review_data_cleaned.Rdata")
+save(review_data_small_prepped, file = "review_data_small_prepped.Rdata")
+load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/review_data_small_prepped.Rdata")
 
 review_data <- review_data %>% 
   mutate(review_id = NULL, 
