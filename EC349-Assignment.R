@@ -111,8 +111,8 @@ business_data <- business_data %>%
   mutate(engagement = rowSums(!is.na(b_attributes)))
 
 # Check how businesses choose to fill the attributes according to categories?
-# business_engagement <- business_data %>% 
-#   select(name, review_count, categories, engagement)
+business_engagement <- business_data %>%
+  select(name, review_count, categories, engagement)
 
 # Find category count and see how it's distributed:
 
@@ -129,56 +129,50 @@ business_data <- business_data %>%
 # Looks pretty useless, instead categorise the businesses, bars & restaurants, financial services etc.? Would love to use unsupervised machine learning for classification but I don't think I have the time to actually learn.
 # Try creating a character vector to add up all the words between commas and then use unique function to see what unique responses there are?
 
-# categories <- paste(business_engagement$categories, collapse = ",")
-# categories <- strsplit(categories, ",")
-# categories <- lapply(categories, str_trim)
-# unique_categories <- unique(unlist(categories))
-# print(unique_categories)
-# unique_categories <- str_replace_all(unique_categories, " ", "")
-# unique_categories_matrix <- matrix(unique_categories, ncol = 1, byrow= TRUE)
-# unique_categories <- as.data.frame(unique_categories_matrix)
+categories <- paste(business_engagement$categories, collapse = ",")
+categories <- strsplit(categories, ",")
+categories <- lapply(categories, str_trim)
+unique_categories <- unique(unlist(categories))
+print(unique_categories)
+unique_categories <- str_replace_all(unique_categories, " ", "")
+unique_categories_matrix <- matrix(unique_categories, ncol = 1, byrow= TRUE)
+unique_categories <- as.data.frame(unique_categories_matrix)
 
 # There are 1300+ unique categories, how would I do this? Should I check which categories are most engaged with yelp or review count by creating a category variable and parsing each business's category strings to determine most important categories?
 # unique_categories_list <- list(unique_categories)
 # named_unique_categories <- setNames(as.list(unique_categories), unique_categories)
 # unique_categories_df <- data.frame(named_unique_categories)
 
-# Clearly too many variables, R cannot handle it, try another way
+# Clearly too many variables, R cannot handle it and too many parameters anyways, try another way
 # Give up, go to Yelp category list, just take main categories form Yelp, can analyse further if I have time. Create a variable for each of them in business_data'
 #
 # Add fashion and restaurants and bars for special cases because they have great engagement
 
-# main_categories <- c("Active Life, Arts & Entertainment, Automotive, Beauty & Spas, Education, Event Planning & Services, Financial Services, Food, Health & Medical, Home Services, Hotels & Travel, Local Flavor, Local Services, Mass Media, Nightlife, Pets, Professional Services, Public Services & Government, Real Estate, Religious Organizations, Restaurants, Shopping")
-# main_categories <- str_replace_all(main_categories, " ", "")
-# main_categories <- str_split(main_categories, ",")
-# named_main_categories <- setNames(as.list(main_categories), main_categories)
-# main_categories.df <- data.frame(named_main_categories)
-# Useless, should've just used mutate to sort each category from the start!
 
-# business_data <- business_data %>% 
-#   mutate(Active_Life = if_else(str_detect(categories, "Active Life"), 1, 0),
-#          Arts_Entertainment = if_else(str_detect(categories, "Arts & Entertainment"), 1, 0),
-#          Automotive = if_else(str_detect(categories, "Automotive"), 1, 0),
-#          Beauty_Spas = if_else(str_detect(categories, "Beauty & Spas"), 1, 0),
-#          Education = if_else(str_detect(categories, "Education"), 1, 0),
-#          Event_Planning_Services = if_else(str_detect(categories, "Event Planning & Services"), 1, 0),
-#          Financial_Services = if_else(str_detect(categories, "Financial Services"), 1, 0),
-#          Food = if_else(str_detect(categories, "Food"), 1, 0),
-#          Health_Medical = if_else(str_detect(categories, "Health & Medical"), 1, 0),
-#          Home_Services = if_else(str_detect(categories, "Home Services"), 1, 0),
-#          Hotels_Travel = if_else(str_detect(categories, "Hotels & Travel"), 1, 0),
-#          Local_Flavor = if_else(str_detect(categories, "Local Flavor"), 1, 0),
-#          Local_Services = if_else(str_detect(categories, "Local Services"), 1, 0),
-#          Mass_Media = if_else(str_detect(categories, "Mass Media"), 1, 0),
-#          Nightlife = if_else(str_detect(categories, "Nightlife"), 1, 0),
-#          Pets = if_else(str_detect(categories, "Pets"), 1, 0),
-#          Professional_Services = if_else(str_detect(categories, "Professional Services"), 1, 0),
-#          Public_Services_Government = if_else(str_detect(categories, "Public Services & Government"), 1, 0),
-#          Real_Estate = if_else(str_detect(categories, "Real Estate"), 1, 0),
-#          Religious_Organizations = if_else(str_detect(categories, "Religious Organizations"), 1, 0),
-#          Restaurants = if_else(str_detect(categories, "Restaurants"), 1, 0),
-#          Shopping = if_else(str_detect(categories, "Shopping"), 1, 0)
-#   )
+business_data <- business_data %>%
+  mutate(Active_Life = if_else(str_detect(categories, "Active Life"), 1, 0),
+         Arts_Entertainment = if_else(str_detect(categories, "Arts & Entertainment"), 1, 0),
+         Automotive = if_else(str_detect(categories, "Automotive"), 1, 0),
+         Beauty_Spas = if_else(str_detect(categories, "Beauty & Spas"), 1, 0),
+         Education = if_else(str_detect(categories, "Education"), 1, 0),
+         Event_Planning_Services = if_else(str_detect(categories, "Event Planning & Services"), 1, 0),
+         Financial_Services = if_else(str_detect(categories, "Financial Services"), 1, 0),
+         Food = if_else(str_detect(categories, "Food"), 1, 0),
+         Health_Medical = if_else(str_detect(categories, "Health & Medical"), 1, 0),
+         Home_Services = if_else(str_detect(categories, "Home Services"), 1, 0),
+         Hotels_Travel = if_else(str_detect(categories, "Hotels & Travel"), 1, 0),
+         Local_Flavor = if_else(str_detect(categories, "Local Flavor"), 1, 0),
+         Local_Services = if_else(str_detect(categories, "Local Services"), 1, 0),
+         Mass_Media = if_else(str_detect(categories, "Mass Media"), 1, 0),
+         Nightlife = if_else(str_detect(categories, "Nightlife"), 1, 0),
+         Pets = if_else(str_detect(categories, "Pets"), 1, 0),
+         Professional_Services = if_else(str_detect(categories, "Professional Services"), 1, 0),
+         Public_Services_Government = if_else(str_detect(categories, "Public Services & Government"), 1, 0),
+         Real_Estate = if_else(str_detect(categories, "Real Estate"), 1, 0),
+         Religious_Organizations = if_else(str_detect(categories, "Religious Organizations"), 1, 0),
+         Restaurants = if_else(str_detect(categories, "Restaurants"), 1, 0),
+         Shopping = if_else(str_detect(categories, "Shopping"), 1, 0)
+  )
 
 # Further refine into this:
 
@@ -192,7 +186,7 @@ business_data <- business_data %>%
          Grocery = if_else(str_detect(categories, "Grocery"), 1, 0)
   )
 
-# Need to figure out how to convert things into
+
 
 # Also need to figure out what to do with opening hours.Some businesses don't bother filling out the times at which they're open, while others leave blank when they're not open, how would I deal with this?
 # Either exclude NA observations with opening times or match opening days to the other most similar business's opening hours. I choose the latter.
@@ -200,12 +194,12 @@ business_data <- business_data %>%
 #   select(name, review_count, city, state, postal_code, is_open, categories, hours)
 
 # Trying a crude method of isolating observations with all NA's for opening hours
-# b_hours <- business_data %>% 
-#   select(hours)
-# business_data <- business_data %>% 
-#   mutate(days_open = rowSums(!is.na(b_hours)))
-# hours_NA <- business_hours %>% 
-#   filter(days_open == 0)
+b_hours <- business_data %>%
+  select(hours)
+business_data <- business_data %>%
+  mutate(days_open = rowSums(!is.na(b_hours)))
+hours_NA <- business_data %>%
+  filter(days_open == 0)
 
 # There are 23k observations with all NA's not feasible to match opening days to other most similar business's hours manually
 # Perhaps try certain conditions and have them match! Very problematic, even if I want to match a hot dog stand to another hot dog stand in the same city, I can't
@@ -246,15 +240,37 @@ business_data <- business_data %>%
 #   select(name, categories,attributes)
 # Might need to go in and manually fish out useful attributes later on!
 
+# Since I've chosen to refine the categories chosen, I should prove my claims with a graph and data, find mean engagement for each business category.
+category_dummy_indices <- 16:40
+means_engagement <- sapply(category_dummy_indices, function(i) mean(business_data$engagement[business_data[, i] == 1], na.rm = TRUE))
+engagement_means <- data.frame(category_dummy = names(business_data)[category_dummy_indices], mean = means_engagement)
+
+engagment_by_category_plot <- ggplot(engagement_means, aes(x = category_dummy, y = mean)) +
+  geom_bar(stat = "identity", width =0.6) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  labs(title = "Mean of Engagement by Business Category", x = "Business Category", y = "Mean")
+
+ggsave("Engagement by category.png", plot = engagment_by_category_plot, width = 10, height = 8)
+  
+  
+# Means businesses' average star by category
+# category_dummy_indices <- 16:40
+# means_biz_avgstars <- sapply(category_dummy_indices, function(i) mean(business_data$business_stars[business_data[, i] == 1], na.rm = TRUE))
+# avgstars_byCAT <- data.frame(category_dummy = names(business_data)[category_dummy_indices], mean = means_biz_avgstars)
+#   
+# ggplot(avgstars_byCAT, aes(x = category_dummy, y = mean)) +
+#   geom_bar(stat = "identity", width =0.4) +
+#   theme_minimal() +
+#   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+#   labs(title = "Average Stars by Business Category", x = "Business Category", y = "Mean")
+# plots
+
+  
+  
 # Renaming business variables so no confusion when joining
 colnames(business_data)[9] <- "business_stars"
 colnames(business_data)[10] <- "business_review_count"
-
-no_categories <- business_data %>% 
-  filter(is.na(categories)) # Only 103 observations, safe to drop!
-
-business_data <- business_data %>% 
-  filter(!is.na(categories))
 
 # business_categories <- business_data %>% 
 #   select(name, categories, Arts_Entertainment, Automotive, Beauty_Spas, Education, Event_Planning_Services, Financial_Services, Food, Health_Medical, Home_Services, Hotels_Travel, Local_Flavor, 
@@ -291,8 +307,8 @@ business_data <- business_data %>%
 
 # Category refinement 
 business_data_prepped <- business_data %>% 
-  select(business_id, state, latitude, longitude, business_stars, business_review_count, engagement, Food, Nightlife, Shopping, Bars, Fashion, 
-         Restaurants, Grocery, checkin_count)
+  select(business_id, state, latitude, longitude, business_stars, business_review_count, engagement, 
+         Arts_Entertainment, Bars, Event_Planning_Services, Food, Grocery, Local_Flavor, Nightlife, Restaurants, checkin_count)
 
 
 save(business_data_prepped, file = "business_data_prepped.Rdata")
@@ -311,7 +327,7 @@ load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/EC34
 #   filter(days_open > 0) # I don't believe days open truly affects how well a user may rate a business, feels like noise, will remove in proper model
 
 
-
+# Originally worked with big data, RF couldn't run
 load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/Assignment 1/Assignment/Small Datasets/yelp_review_small.Rda")
 review_data_small$review_id <- NULL
 review_data_small$text <- NULL
@@ -385,7 +401,7 @@ review_data_small_prepped$business_id <- NULL
 
 save(review_data_small_prepped, file = "review_data_small_prepped.Rdata")
 
-# This is where I would clear memory, reload libraries and only load this file so environment is cleaner!
+# This is where I would clear memory for linear regression, reload libraries and only load this file so environment is cleaner!
 rm(list = ls())
 load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/review_data_small_prepped.Rdata")
 
@@ -401,6 +417,7 @@ library(ipred)
 library(randomForest)
 library(adabag)
 
+review_data_small_prepped$state <- NULL
 # FIRST! TEST LASSO!
 set.seed(1)
 # Create a separate partition within the data frame of the original data set to be called upon to create training vs test sets
@@ -410,53 +427,96 @@ review_partition <- createDataPartition(y = review_data_small_prepped$stars, 1, 
 review_training_set <- review_data_small_prepped[review_partition[[1]], ]
 review_test_set <- review_data_small_prepped[-review_partition[[1]], ]
 
-vars_excluded <- c("stars", "state")
+vars_excluded <- c("stars")
 x <- as.matrix(review_training_set[,setdiff(names(review_training_set), vars_excluded)])
 y <- review_training_set$stars
 
 
 grid <- 10^seq(0,-15, length=150)
-cv.lasso_rev <- cv.glmnet(x, y, alpha=1, lambda = grid) # Returned warnings in regularizing values, high collinearity in variables?
+cv.lasso_rev <- cv.glmnet(x, y, alpha=1, lambda = grid) 
 print(cv.lasso_rev)
 plot(cv.lasso_rev)
-print(cv.lasso_rev$lambda.min) # minLambda =1.260872e-15
+print(cv.lasso_rev$lambda.min) # minLambda =1.589799e-15
 lambda.lasso <- cv.lasso_rev$lambda.min
 #dcGmatrix needs to be converted into proper matrix before conversion into dataframe to be viewed
 #matrix is stored as a value and cannot be viewed and saved as data directly to do that you need to convert into data frame
 coef.lasso <- as.matrix(coef(cv.lasso_rev, s= lambda.lasso))
 coef.lasso.df <- as.data.frame(coef.lasso)
+colnames(coef.lasso.df)[1] <- "Not Scaled LASSO coefficients"
+save(coef.lasso.df, file="LASSO coefficients.Rdata")
+
 min.mse.lasso <- min(cv.lasso_rev$cvm)
-print(min.mse.lasso) # MSE in training 1.190937
+print(min.mse.lasso) # MSE in training 1.190811
 
 # Test the MSE of LASSO
 x_test <- as.matrix(review_test_set[, setdiff(names(review_test_set), vars_excluded)])
 y_test <- review_test_set$stars
-predicted_stars <- predict(cv.lasso_rev, newx = x_test, s = "lambda.min")
-mse_lasso <- mean((predicted_stars - y_test) ^ 2)
-print(mse_lasso) # 1.181076 with L1/LASSO, let's try Ridge!
+predicted_stars_lasso <- predict(cv.lasso_rev, newx = x_test, s = "lambda.min")
+test_mse_lasso <- mean((predicted_stars_lasso - y_test) ^ 2)
+print(test_mse_lasso) # 1.181023 with L1/LASSO, let's try Ridge!
 
+# SCALING for LASSO
+review_data_small_prepped_scaled <- review_data_small_prepped
+review_data_small_prepped_scaled$stars <- NULL
+review_data_small_prepped_scaled <- scale(review_data_small_prepped_scaled)
+review_data_small_prepped_scaled <- as.data.frame(review_data_small_prepped_scaled)
+review_data_small_prepped_scaled$stars <- review_data_small_prepped$stars
 
-# Ridge attempt
-cv.ridge <- cv.glmnet(x, y, alpha=1, lambda = grid) # Returned warnings in regularizing values, high collinearity in variables?
-print(cv.ridge)
-plot(cv.ridge)
-print(cv.ridge$lambda.min) # minLambda for ridge =3.186807e-15
-lambda.ridge <- cv.ridge$lambda.min
+set.seed(1)
+# Create a separate partition within the data frame of the original data set to be called upon to create training vs test sets
+# The separate partition can be treated like a separate list and so can be called with a name in the row index
+review_partition <- createDataPartition(y = review_data_small_prepped_scaled$stars, 1, p = 0.75)
+# The partition is separate in the data frame of user and thus needs to be called when referring to the indices with user_data_small[]
+scaled_training_set <- review_data_small_prepped_scaled[review_partition[[1]], ]
+scaled_test_set <- review_data_small_prepped_scaled[-review_partition[[1]], ]
+
+vars_excluded <- c("stars")
+x <- as.matrix(scaled_training_set[,setdiff(names(scaled_training_set), vars_excluded)])
+y <- scaled_training_set$stars
+
+grid <- 10^seq(0,-15, length=150)
+cv.scaled.lasso <- cv.glmnet(x, y, alpha=1, lambda = grid) 
+print(cv.scaled.lasso)
+plot(cv.scaled.lasso)
+print(cv.scaled.lasso$lambda.min) # minLambda =2.527462e-15
+lambda.lasso <- cv.scaled.lasso$lambda.min
 #dcGmatrix needs to be converted into proper matrix before conversion into dataframe to be viewed
 #matrix is stored as a value and cannot be viewed and saved as data directly to do that you need to convert into data frame
-coef.ridge <- as.matrix(coef(cv.ridge, s= lambda.lasso))
-coef.ridge.df <- as.data.frame(coef.ridge)
-min.mse.ridge <- min(cv.ridge$cvm)
-print(min.mse.ridge) # MSE in training 1.191861
+coef.scaled.lasso <- as.matrix(coef(cv.scaled.lasso, s= lambda.lasso))
+coef.scaled.lasso.df <- as.data.frame(coef.scaled.lasso)
+colnames(coef.scaled.lasso.df)[1] <- "Scaled LASSO coefficients"
+save(coef.scaled.lasso.df, file="scaled LASSO coefficients.Rdata")
+min.mse.scaled.lasso <- min(cv.scaled.lasso$cvm)
+print(min.mse.scaled.lasso) # MSE in training 1.190812
 
-# Test the MSE of LASSO
-x_test <- as.matrix(review_test_set[, setdiff(names(review_test_set), vars_excluded)])
-y_test <- review_test_set$stars
-predicted_stars_ridge <- predict(cv.ridge, newx = x_test, s = "lambda.min")
-test_mse_ridge <- mean((predicted_stars_ridge - y_test) ^ 2)
-print(test_mse_ridge) # 1.181077 with L2/Ridge no difference in either
+# Test the MSE of SCALED LASSO
+x_test <- as.matrix(scaled_test_set[, setdiff(names(scaled_test_set), vars_excluded)])
+y_test <- scaled_test_set$stars
+predicted_stars_scaled_lasso <- predict(cv.scaled.lasso, newx = x_test, s = "lambda.min")
+test_mse_scaled_lasso <- mean((predicted_stars_scaled_lasso - y_test) ^ 2)
+print(test_mse_scaled_lasso) # 1.181024 with L1/LASSO, let's try Ridge!
 
 
+
+# # Ridge attempt
+# cv.ridge <- cv.glmnet(x, y, alpha=0, lambda = grid) # Returned warnings in regularizing values, high collinearity in variables?
+# print(cv.ridge)
+# plot(cv.ridge)
+# print(cv.ridge$lambda.min) # minLambda for ridge =0.03895866
+# lambda.ridge <- cv.ridge$lambda.min
+# #dcGmatrix needs to be converted into proper matrix before conversion into dataframe to be viewed
+# #matrix is stored as a value and cannot be viewed and saved as data directly to do that you need to convert into data frame
+# coef.ridge <- as.matrix(coef(cv.ridge, s= lambda.lasso))
+# coef.ridge.df <- as.data.frame(coef.ridge)
+# min.mse.ridge <- min(cv.ridge$cvm)
+# print(min.mse.ridge) # MSE in training 1.193669
+# 
+# # Test the MSE of Ridge
+# x_test <- as.matrix(review_test_set[, setdiff(names(review_test_set), vars_excluded)])
+# y_test <- review_test_set$stars
+# predicted_stars_ridge <- predict(cv.ridge, newx = x_test, s = "lambda.min")
+# test_mse_ridge <- mean((predicted_stars_ridge - y_test) ^ 2)
+# print(test_mse_ridge) # 1.182963 with L2/Ridge no significant difference in either
 
 
 
@@ -480,38 +540,47 @@ library(adabag)
 review_data_small_prepped <- review_data_small_prepped %>% 
   mutate(stars=as.factor(stars))
 
+set.seed(1)
+# Create a separate partition within the data frame of the original data set to be called upon to create training vs test sets
+# The separate partition can be treated like a separate list and so can be called with a name in the row index
+review_partition <- createDataPartition(y = review_data_small_prepped$stars, 1, p = 0.75)
+# The partition is separate in the data frame of user and thus needs to be called when referring to the indices with user_data_small[]
+review_training_set <- review_data_small_prepped[review_partition[[1]], ]
+review_test_set <- review_data_small_prepped[-review_partition[[1]], ]
+
+
 model_RF<-randomForest(stars~.,data=review_training_set, ntree=100)
-mean(model_RF[["err.rate"]]) # 0.5586984 mean oob error
+mean(model_RF[["err.rate"]]) # 0.5589551 mean oob error
 pred_RF_test = predict(model_RF, review_test_set)
 actual_values <- review_test_set$stars
 test_set_error_rate <- mean(pred_RF_test != actual_values) # 0.4033255 test set error rate
 
 model_RF_200<-randomForest(stars~.,data=review_training_set, ntree=200)
-mean(model_RF_200[["err.rate"]]) # 0.552618 mean oob error
+mean(model_RF_200[["err.rate"]]) # 0.5526197 mean oob error
 pred_RF_test_200 = predict(model_RF_200, review_test_set)
 actual_values <- review_test_set$stars
-test_set_error_rate_200 <- mean(pred_RF_test_200 != actual_values) # 0.4010335 test set error rate
+test_set_error_rate_200 <- mean(pred_RF_test_200 != actual_values) # 0.4007445 test set error rate
 
 model_adaboost <- boosting(stars~ ., data=review_training_set, boos=TRUE, mfinal=50)
 actual_values <- review_test_set$stars
 pred_test_ada50 <- predict(model_adaboost, review_test_set)
 test_error_rate_ada50 <- mean(pred_test_ada50$class != actual_values)
-print(test_error_rate_ada50) # test_error_rate_ada50= 0.4529454
+print(test_error_rate_ada50) # test_error_rate_ada50= 0.4530255
 
 model_adaboost_stump100 <- boosting(stars~ ., data=review_training_set, boos=TRUE, mfinal=100)
 actual_values <- review_test_set$stars
 pred_test_ada100 <- predict(model_adaboost_stump100, review_test_set)
 test_error_rate_ada100 <- mean(pred_test_ada100$class != actual_values)
-print(test_error_rate_ada100) # test_error_rate_ada100= 0.4529025
+print(test_error_rate_ada100) # test_error_rate_ada100= 0.4529025 diminishing returns to increasing number of stumps!
 
-bag <- bagging(stars~., data=review_training_set, nbagg = 50,   
+bag <- bagging(stars~., data=review_training_set, nbagg = 50,
                coob = TRUE, control = rpart.control(minsplit = 2, cp = 0.1)
 )
 actual_values <- review_test_set$stars
-pred_test <- predict(bag, review_test_set)
-test_set_error_rate_cp.1 <- mean(pred_test$class != actual_values)
-print(test_set_error_rate_cp.1)
-print(pred_test$error) # 0.4803091 mean error rate
+pred_test_bag <- predict(bag, review_test_set)
+test_set_error_rate_cp.1 <- mean(pred_test_bag$class != actual_values)
+print(test_set_error_rate_cp.1) # 0.4803091 = test_set_error_rate_cp.1
+print(pred_test_bag$error) # 0.4803091 mean error rate
 
 
 

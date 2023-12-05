@@ -1,74 +1,101 @@
 ---
 title: "EC349-Assignment"
 author: "Travis Tan"
-date: "`r Sys.Date()`"
-output: html_document
+date: "2023-12-04"
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Plans
+# Tabula Statement
 
-* First, I have decided to first construct a model out of Ridge regression to help identify which variables might have the strongest explanatory power. If some predictors truly have outsized explanatory power, I will then perform LASSO regression to perform feature selection. 
-  * I would examine which model performed better, if some predictors have disproportionate explanatory power, the LASSO should perform better than the ridge.
+We're part of an academic community at Warwick.
+
+Whether studying, teaching, or researching, we’re all taking part in an expert conversation which must meet standards of academic integrity. When we all meet these standards, we can take pride in our own academic achievements, as individuals and as an academic community.
+
+Academic integrity means committing to honesty in academic work, giving credit where we've used others' ideas and being proud of our own achievements.
+
+In submitting my work I confirm that:
+
+1. I have read the guidance on academic integrity provided in the Student Handbook and understand the University regulations in relation to Academic Integrity. I am aware of the potential consequences of Academic Misconduct.
+
+2. I declare that the work is all my own, except where I have stated otherwise.
+
+3. No substantial part(s) of the work submitted here has also been submitted by me in other credit bearing assessments courses of study (other than in certain cases of a resubmission of a piece of work), and I acknowledge that if this has been done this may lead to an appropriate sanction.
+
+4. Where a generative Artificial Intelligence such as ChatGPT has been used I confirm I have abided by both the University guidance and specific requirements as set out in the Student Handbook and the Assessment brief. I have clearly acknowledged the use of any generative Artificial Intelligence in my submission, my reasoning for using it and which generative AI (or AIs) I have used. Except where indicated the work is otherwise entirely my own.
+
+5. I understand that should this piece of work raise concerns requiring investigation in relation to any of points above, it is possible that other work I have submitted for assessment will be checked, even if marks (provisional or confirmed) have been published.
+
+6. Where a proof-reader, paid or unpaid was used, I confirm that the proofreader was made aware of and has complied with the University’s proofreading policy.
+
+7. I consent that my work may be submitted to Turnitin or other analytical technology. I understand the use of this service (or similar), along with other methods of maintaining the integrity of the academic process, will help the University uphold academic standards and assessment fairness.
+
+## Privacy Statement
+
+The data on this form relates to your submission of coursework. The date and time of your submission, your identity, and the work you have submitted will be stored. We will only use this data to administer and record your coursework submission.
+
+## Related Articles
+
+- [Reg. 11 Academic Integrity (from 4 Oct 2021)](https://warwick.ac.uk/services/aro/dar/quality/categories/examinations/regulations/cheating)
+- [Guidance on Regulation 11](https://warwick.ac.uk/services/aro/dar/quality/categories/examinations/regulations/cheating/guidance)
+- [Proofreading Policy](https://warwick.ac.uk/services/aro/dar/quality/categories/proofreading)
+- [Education Policy and Quality Team](https://warwick.ac.uk/services/aro/dar/quality)
+- [Academic Integrity (warwick.ac.uk)](https://warwick.ac.uk/services/aro/dar/quality/categories/examinations/academicintegrity)
+
+This is the end of the statement to be included.  
+
+
+### Introduction
+For this project, I chose John Rollins’ methodology for its flexible, iterative nature due to challenges in data wrangling, comprehensiveness in analysis and agility in implementation, making it suitable for a big data analysis such as this. This methodology emphasizes an iterative process through phases including data understanding, preparation, modelling, evaluation, and deployment. I began with data understanding as the previous stages have already been carried out and iterated continuously between data preparation and understanding until I was satisfied with my data before modelling. However, I encountered several challenges while modelling such as running out of RAM to compute my desired models, possible collinear variables requiring feature refinement and this methodology allowed me to iterate between phases multiple times till my desired model was achieved.  
+
+### Most difficult challenge in assignment
+The most challenging aspect of this project was deciding how to wrangle the business dataset, engineer features, and extract the most relevant information in predicting stars with relatively simple models as taught in class. The business dataset has 39 mostly unfilled attributes and the many attributes that were hard to transform meaningfully for fitting models such as ambience and the unreliable information made usefulness in analysing individual attributes limited.  
+
+To solve this issue, the total number of non-empty attributes for every business was summed up and named the variable “engagement”. The more attributes a business fills out, even if the response is none, the more likely a business is to be engaged on Yelp and other platforms, the more likely their proactiveness to maintain a digital presence and outreach. These businesses are also more likely to strive for better reviews on Yelp and could be another feature for predicting stars. This was a feasible way I found to extract information out of attributes I wouldn’t otherwise be able to.
+
+### Data Understanding and Variable Selection
+I began data wrangling with user data to extract useful user features which may aid in review prediction. I started with finding user account age with by using 2023/01/01 as the base date for age. I then calculated “friend_count” and “elite_year_count” by parsing the columns. I originally summed up the total number of compliments for each user but decided the number of compliment variables wouldn’t overfit the model and kept the original. I included other user features like average stars, total fans, total useful, funny, and cool sent by users. I believe these features would show how active a user might be and would help in review prediction. I also included the user tip count extracted from tip data as another feature for a user’s proactiveness on yelp.  
+
+In addition to the aforementioned challenges in business data wrangling, I found 1,312 unique business categories after transforming the categories into a table of unique categories, simply too much for any analysis. I originally parsed the categories for main categories found on Yelp’s site but refined it further by identifying important categories by considering engagement, as a more engaged business’s category would likely improve prediction accuracy. I plotted the engagement means of each major category and included the categories with the highest engagement means as dummies for the model with reasoning as above. Bars, restaurants, and grocery appear to be the strongest categories as I examined the data, so I included them in the plot, which suggests my suspicions were correct. Transforming business hours for use also proved challenging as I found 23,223 businesses with no information while some businesses only have hours listed for less than 2 days a week, often a temporary measure, after checking on Yelp. I decided to omit “is open” and opening hours as I believe they are both weak and noisy predictors while the data is unreliable for hours. I also collected the check-in and tip counts a business received as another feature of how popular the business may be. I included latitude, longitude, and state data as geographical features, but omitted cities for two reasons, as there would be over 1000 levels which R cannot handle and would likely also overfit the model.  
   
-* If there isn't, I would then examine random forests as a possible feasible alternative.
-  * This could be seen as a classification problem- depending on conditions, businesses might get above a threshold of stars as stars are given in .5 increments.
-
-
-### Linear models
-
-* I will first find trends between features to see how stars are given: Would more active users give more or fewer stars on average?
-  * To do this, I would have to find the user and business features that could predict stars given. So 2 models first:
-    * Stars given according to user features: $$stars = \sum_{j=1}^{u} \beta_j * user feature_j  $$
-    * Stars given according to business features: $$stars = \sum_{k=1}^{b} \beta_k * business feature_k  $$
-    * Taking the two: $$stars = \sum_{j=1}^{u} \beta_j * user feature_j + \sum_{k=1}^{b} \beta_k * business feature_k$$  
-    This will be my starting model for ridge regression.
-
-Remember that big businesses are more likely to have available data and not a whole bunch of NA's. This means I may be better off
-creating 2 models, one model for big businesses and one for small.  
-
-I first split training data set on user data into 75/25.
-
-### Variable Selection
-Before formally choosing a model, understanding the variables is crucial. To predict the stars a business receives from a user requires user and business features, starting with business data:  
-* city, state, latitude, longitude: location features  
-* review count  
-* stars  
-* engagement: measured by number of attributes a business filled, this indicates how much they value 
-* category count? Shows 
-* business category  
-* opening hour availability?  
- 
-For user data:  
-* Could consider making a variable for each elite year and checking whether that improves performance, just a thought.  
-* Keep all compliments separate, and include total_compliments  
-* 
+![](Engagement by category.png)  
   
-What could determine how many stars a business receives from a user?  
-* Business features as above, but also how many checkins a business may receive. Some business categories would receive more than others?  
-* User features as above  
-* Review positivity by user? Like whether a review is positive, useful, funny, cool etc. This requires sentiment analysis.  
-* Tip data, same as review positivity.  
-*   
 
-Also important to remember to be mindful of outliers like hyper-active users who might rate differently from the average yelp user.  
-Can go back to better categorize businesses, should be mindful of which categories drive the most engagement
+Finally, I included review age, and ratings a review received for my model. While I had originally used the original review dataset for this project, I used the smaller dataset of 1.4 million observations instead as I could not train a Random Forests model otherwise.
 
-### Model selection
-Using random forest for this without knowing how strong each variable is is foolhardy. Bagging might actually perform better than random forest in this case. Wanted to try to create a factor variable with levels for main categories but some businesses satisfy more than one category and so this wouldn't work.
+  
+  
+### Models’ Training and Analysis:
+As review stars are discrete outcomes, I believe a tree model would be suitable for this classification. However, individual decision trees are not robust enough as a small change in data could significantly change predictions. Bagging aims to alleviate this by growing many trees while randomly sampling the training data with replacement and taking the averages of trees’ predictions, however there is still correlation between trees predictions so there is a limit in gains in robustness through bagging. Random forest address this through also sub-setting variables randomly for every split in every tree on top of bagging, which should reduce the correlation in predictions across the tree ensemble. Overall, I believe Random Forest would be most robust and suited for this project, even with interpretability trade-offs compared to linear models. Nonetheless, I started with fitting other models for more information on my selected features. I found that my LASSO model performed variable selection for only one variable both before and after scaling, unexpectedly my scaled LASSO model still had an intercept. 
+```{r}
+library(knitr)
+load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/LASSO coefficients.Rdata")
+kable(coef.lasso.df)
+```
 
+```{r}
+library(knitr)
+load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/scaled LASSO coefficients.Rdata")
+kable(coef.scaled.lasso.df)
+```
 
+This may imply that most variables included were relatively similar in explanatory power which suggests Random Forest could be a suitable approach as the main weakness of Random Forests is poor performance when variable size is large but only a small number of variables are relevant. This may also imply that random forests would likely outperform bagging with this main weakness dispelled since Random Forest usually outperform bagging through eliminating correlation between trees by sub-setting variables when growing trees. If only few variables are relevant, Random Forest is likely to subset irrelevant features when growing trees whereas in bagging, there's a consistent chance that these relevant features would be used to grow trees since bagging does not subset features.  
 
-### Possible improvements
-Due to time constraint, I couldn't try these methods but I do think they could improve the model:  
-* Doing sentiment analysis on tip and review data
-* Using unsupervised machine learning to sort business categories
+While a boosting model such as AdaBoost was an option, I chose Random Forest for its robustness to overfitting given my large feature set as Random Forest’s averaging is less sensitive to noise in the data compared to boosting which continuously corrects previous mistakes and so is less sensitive to outliers. Random Forest is also simpler to tune compared to boosting as boosting would require tuning the weights of predictors averaged and the number of estimators predicted.  
 
+After estimating the models, Random Forest was confirmed to be the best performing model even compared to boosting, with a 200-tree-forest generating a mean test error rate of 0.4007445, meaning Random Forest outputs correct predictions 60% of the time. This is compared to error rates of 0.4803091 for bagging and 0.4529025 for boosting, validating my suspicions.  
 
+### Conclusion
 
+Although Random Forest outperformed boosting in my analysis, boosting or a neural network could outperform Random Forest through careful tuning. Although Random Forest’s predictions were the most accurate of classification models in my tests, a 0.4 mean error rate definitely leaves room for improvement. While using a bigger dataset may bring prediction improvements, I believe the dataset is sufficiently big and any accuracy gains would be minimal.  
+
+  
+Link to GitHub project : https://github.com/TTravis67/EC349-Assignment
 
 
 
