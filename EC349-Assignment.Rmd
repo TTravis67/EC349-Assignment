@@ -74,15 +74,13 @@ Finally, I included review age, and ratings a review received for my model. Whil
 As review stars are discrete outcomes, I believe a tree model would be suitable for this classification. However, individual decision trees are not robust enough as a small change in data could significantly change predictions. Bagging aims to alleviate this by growing many trees while randomly sampling the training data with replacement and taking the averages of trees’ predictions, however there is still correlation between trees predictions so there is a limit in gains in robustness through bagging. Random forest address this through also sub-setting variables randomly for every split in every tree on top of bagging, which should reduce the correlation in predictions across the tree ensemble. Overall, I believe Random Forest would be most robust and suited for this project, even with interpretability trade-offs compared to linear models. Nonetheless, I started with fitting other models for more information on my selected features. I found that my LASSO model performed variable selection for only one variable both before and after scaling, unexpectedly my scaled LASSO model still had an intercept. 
 ```{r}
 library(knitr)
-load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/
-     EC349-Assignment/LASSO coefficients.Rdata")
+load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/LASSO coefficients.Rdata")
 kable(coef.lasso.df)
 ```
 
 ```{r}
 library(knitr)
-load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/
-     EC349-Assignment/scaled LASSO coefficients.Rdata")
+load("C:/Users/Travis Tan/OneDrive - University of Warwick/EC349/R projects/EC349-Assignment/scaled LASSO coefficients.Rdata")
 kable(coef.scaled.lasso.df)
 ```
 
