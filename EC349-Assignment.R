@@ -418,42 +418,7 @@ library(randomForest)
 library(adabag)
 
 review_data_small_prepped$state <- NULL
-# FIRST! TEST LASSO!
-set.seed(1)
-# Create a separate partition within the data frame of the original data set to be called upon to create training vs test sets
-# The separate partition can be treated like a separate list and so can be called with a name in the row index
-review_partition <- createDataPartition(y = review_data_small_prepped$stars, 1, p = 0.75)
-# The partition is separate in the data frame of user and thus needs to be called when referring to the indices with user_data_small[]
-review_training_set <- review_data_small_prepped[review_partition[[1]], ]
-review_test_set <- review_data_small_prepped[-review_partition[[1]], ]
 
-vars_excluded <- c("stars")
-x <- as.matrix(review_training_set[,setdiff(names(review_training_set), vars_excluded)])
-y <- review_training_set$stars
-
-
-grid <- 10^seq(0,-15, length=150)
-cv.lasso_rev <- cv.glmnet(x, y, alpha=1, lambda = grid) 
-print(cv.lasso_rev)
-plot(cv.lasso_rev)
-print(cv.lasso_rev$lambda.min) # minLambda =1.589799e-15
-lambda.lasso <- cv.lasso_rev$lambda.min
-#dcGmatrix needs to be converted into proper matrix before conversion into dataframe to be viewed
-#matrix is stored as a value and cannot be viewed and saved as data directly to do that you need to convert into data frame
-coef.lasso <- as.matrix(coef(cv.lasso_rev, s= lambda.lasso))
-coef.lasso.df <- as.data.frame(coef.lasso)
-colnames(coef.lasso.df)[1] <- "Not Scaled LASSO coefficients"
-save(coef.lasso.df, file="LASSO coefficients.Rdata")
-
-min.mse.lasso <- min(cv.lasso_rev$cvm)
-print(min.mse.lasso) # MSE in training 1.190811
-
-# Test the MSE of LASSO
-x_test <- as.matrix(review_test_set[, setdiff(names(review_test_set), vars_excluded)])
-y_test <- review_test_set$stars
-predicted_stars_lasso <- predict(cv.lasso_rev, newx = x_test, s = "lambda.min")
-test_mse_lasso <- mean((predicted_stars_lasso - y_test) ^ 2)
-print(test_mse_lasso) # 1.181023 with L1/LASSO, let's try Ridge!
 
 # SCALING for LASSO
 review_data_small_prepped_scaled <- review_data_small_prepped
@@ -465,17 +430,17 @@ review_data_small_prepped_scaled$stars <- review_data_small_prepped$stars
 set.seed(1)
 # Create a separate partition within the data frame of the original data set to be called upon to create training vs test sets
 # The separate partition can be treated like a separate list and so can be called with a name in the row index
-review_partition <- createDataPartition(y = review_data_small_prepped_scaled$stars, 1, p = 0.75)
+scaled_review_partition <- createDataPartition(y = review_data_small_prepped_scaled$stars, 1, p = 0.75)
 # The partition is separate in the data frame of user and thus needs to be called when referring to the indices with user_data_small[]
-scaled_training_set <- review_data_small_prepped_scaled[review_partition[[1]], ]
-scaled_test_set <- review_data_small_prepped_scaled[-review_partition[[1]], ]
+scaled_training_set <- review_data_small_prepped_scaled[scaled_review_partition[[1]], ]
+scaled_test_set <- review_data_small_prepped_scaled[-scaled_review_partition[[1]], ]
 
 vars_excluded <- c("stars")
 x <- as.matrix(scaled_training_set[,setdiff(names(scaled_training_set), vars_excluded)])
 y <- scaled_training_set$stars
 
 grid <- 10^seq(0,-15, length=150)
-cv.scaled.lasso <- cv.glmnet(x, y, alpha=1, lambda = grid) 
+cv.scaled.lasso <- cv.glmnet(x, y, alpha=1, lambda = grid, intercept = FALSE)
 print(cv.scaled.lasso)
 plot(cv.scaled.lasso)
 print(cv.scaled.lasso$lambda.min) # minLambda =2.527462e-15
@@ -486,37 +451,22 @@ coef.scaled.lasso <- as.matrix(coef(cv.scaled.lasso, s= lambda.lasso))
 coef.scaled.lasso.df <- as.data.frame(coef.scaled.lasso)
 colnames(coef.scaled.lasso.df)[1] <- "Scaled LASSO coefficients"
 save(coef.scaled.lasso.df, file="scaled LASSO coefficients.Rdata")
-min.mse.scaled.lasso <- min(cv.scaled.lasso$cvm)
-print(min.mse.scaled.lasso) # MSE in training 1.190812
-
-# Test the MSE of SCALED LASSO
-x_test <- as.matrix(scaled_test_set[, setdiff(names(scaled_test_set), vars_excluded)])
-y_test <- scaled_test_set$stars
-predicted_stars_scaled_lasso <- predict(cv.scaled.lasso, newx = x_test, s = "lambda.min")
-test_mse_scaled_lasso <- mean((predicted_stars_scaled_lasso - y_test) ^ 2)
-print(test_mse_scaled_lasso) # 1.181024 with L1/LASSO, let's try Ridge!
 
 
+# Ridge attempt
+grid <- 10^seq(0,-15, length=150)
+cv.scaled.ridge <- cv.glmnet(x, y, alpha=0, lambda = grid, intercept = FALSE) 
+print(cv.scaled.ridge)
+plot(cv.scaled.ridge)
+print(cv.scaled.ridge$lambda.min) # minLambda =2.527462e-15
+lambda.lasso <- cv.scaled.ridge$lambda.min
+#dcGmatrix needs to be converted into proper matrix before conversion into dataframe to be viewed
+#matrix is stored as a value and cannot be viewed and saved as data directly to do that you need to convert into data frame
+coef.scaled.ridge <- as.matrix(coef(cv.scaled.ridge, s= lambda.lasso))
+coef.scaled.ridge.df <- as.data.frame(coef.scaled.ridge)
+colnames(coef.scaled.ridge)[1] <- "Scaled Ridge coefficients"
+save(coef.scaled.ridge.df, file="scaled Ridge coefficients.Rdata")
 
-# # Ridge attempt
-# cv.ridge <- cv.glmnet(x, y, alpha=0, lambda = grid) # Returned warnings in regularizing values, high collinearity in variables?
-# print(cv.ridge)
-# plot(cv.ridge)
-# print(cv.ridge$lambda.min) # minLambda for ridge =0.03895866
-# lambda.ridge <- cv.ridge$lambda.min
-# #dcGmatrix needs to be converted into proper matrix before conversion into dataframe to be viewed
-# #matrix is stored as a value and cannot be viewed and saved as data directly to do that you need to convert into data frame
-# coef.ridge <- as.matrix(coef(cv.ridge, s= lambda.lasso))
-# coef.ridge.df <- as.data.frame(coef.ridge)
-# min.mse.ridge <- min(cv.ridge$cvm)
-# print(min.mse.ridge) # MSE in training 1.193669
-# 
-# # Test the MSE of Ridge
-# x_test <- as.matrix(review_test_set[, setdiff(names(review_test_set), vars_excluded)])
-# y_test <- review_test_set$stars
-# predicted_stars_ridge <- predict(cv.ridge, newx = x_test, s = "lambda.min")
-# test_mse_ridge <- mean((predicted_stars_ridge - y_test) ^ 2)
-# print(test_mse_ridge) # 1.182963 with L2/Ridge no significant difference in either
 
 
 
